@@ -55,6 +55,20 @@ def init_words():
     return tmp
 
 
+def init_lda_model():
+    infile = open("lda-model", 'rb')
+    tmp = pickle.load(infile)
+    infile.close()
+    return tmp
+
+
+def init_mallet_model():
+    infile = open("mallet-model", 'rb')
+    tmp = pickle.load(infile)
+    infile.close()
+    return tmp
+
+
 class Mallet:
     def __init__(self):
         self.lemmatized = init_lemmatized()
@@ -80,9 +94,7 @@ class Mallet:
         plt.show()
 
     def play_with_values(self):
-        infile = open("lda-model", 'rb')
-        lda_model = pickle.load(infile)
-        infile.close()
+        lda_model = init_lda_model()
         print("lda topics")
         pprint(lda_model.print_topics())
 
@@ -94,15 +106,14 @@ class Mallet:
         coherence_lda = coherence_model_lda.get_coherence()
 
         mallet_path = './mallet-2.0.8/bin/mallet'
-        infile = open("mallet-model", 'rb')
-        ldamallet = pickle.load(infile)
-        infile.close()
+        lda_mallet = init_mallet_model()
+
         # ldamallet = gensim.models.wrappers.LdaMallet(mallet_path, corpus=corpus, num_topics=20, id2word=id2word)
 
         # Show Topics
         print("mallet topics")
-        pprint(ldamallet.show_topics(formatted=False))
-        coherence_model_lda_mallet = CoherenceModel(model=ldamallet, texts=self.lemmatized, dictionary=self.words,
+        pprint(lda_mallet.show_topics(formatted=False))
+        coherence_model_lda_mallet = CoherenceModel(model=lda_mallet, texts=self.lemmatized, dictionary=self.words,
                                                     coherence='c_v')
         coherence_lda_mallet = coherence_model_lda_mallet.get_coherence()
         print('\nCoherence Score lda classic: ', coherence_lda)
@@ -111,4 +122,4 @@ class Mallet:
 
 if __name__ == "__main__":
     test_model = Mallet()
-    test_model.run_multiple_and_print()
+    test_model.play_with_values()
