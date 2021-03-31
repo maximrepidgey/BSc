@@ -12,10 +12,10 @@ Update the parameters in this script.
 Also after you download the files mentioned in readme and if you keep them in different path change it over here.
 
 Parameters:
--cg To generate candiidate labels.
+-cg To generate candidate labels.
 -us To get unsupervised labels.
 -s To get supervised labels.
-Ideally should first use -cg to get candiate label file before going for unsupervised or supervised model. But can be used directly if
+Ideally should first use -cg to get candidate label file before going for unsupervised or supervised model. But can be used directly if
 you already have your candidate label file for the topics.
 Eamample for topics given in toy_data/toytopics.csv
 """
@@ -25,7 +25,8 @@ import argparse
 parser = argparse.ArgumentParser()
 
 #Common Parameters
-data ="toy_data/toytopics.csv" # The file in csv format which contains the topic terms that needs a label.
+# data = "toy_data/toytopics.csv"  # The file in csv format which contains the topic terms that needs a label.
+data = "data/run.csv"  # The file in csv format which contains the topic terms that needs a label.
 
 #Parameters for candidate Generation of Labels
 doc2vecmodel = "pre_trained_models/doc2vec/docvecmodel.d2v" # Path for Doc2vec Model.

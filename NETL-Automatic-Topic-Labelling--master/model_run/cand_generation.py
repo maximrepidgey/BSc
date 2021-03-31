@@ -229,7 +229,9 @@ def get_labels(topic_num):
     print ("Topic "+ str(topic_num) + " (Progress 10/10): sorting score done")
     return new_score[:(int(args.num_cand_labels))]
 
-cores = mp.cpu_count()
+
+# cores = mp.cpu_count()
+# cores = int(cores/4)
 # pool = mp.Pool(processes=cores)
 # result = pool.map(get_labels, range(0, len(topic_list)))
 # fix to avoid out of memory
