@@ -11,12 +11,13 @@ __pycache__/
 mallet-2.0.8/
 values_mallet
 test-data/
+#test-run/
 
 # NETL
 NETL-Automatic-Topic-Labelling--master/model_run/pre_trained_models/doc2vec/
 NETL-Automatic-Topic-Labelling--master/model_run/pre_trained_models/word2vec/
-NETL-Automatic-Topic-Labelling--master/model_run/support_files/svm_rank_classify
-NETL-Automatic-Topic-Labelling--master/model_run/support_files/svm_rank_learn
+#NETL-Automatic-Topic-Labelling--master/model_run/support_files/svm_rank_classify
+#NETL-Automatic-Topic-Labelling--master/model_run/support_files/svm_rank_learn
 NETL-Automatic-Topic-Labelling--master/model_run/output_candidates
 #NETL-Automatic-Topic-Labelling--master/model_run/output_unsupervised
 #NETL-Automatic-Topic-Labelling--master/model_run/output_supervised

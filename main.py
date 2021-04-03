@@ -1,182 +1,85 @@
-import re
-import numpy as np
-import pandas as pd
-from pprint import pprint
-import pickle
-
-# Gensim
-import gensim
-import gensim.corpora as corpora
-from gensim.utils import simple_preprocess
-from gensim.models import CoherenceModel
+from NLP import nlp
 from LDA import Mallet
 
-# spacy for lemmatization
-import spacy
-
-# Plotting tools
-import pyLDAvis
-import pyLDAvis.gensim  # don't skip this
-import matplotlib.pyplot as plt
-
-# Enable logging for gensim - optional
-import logging
+import sys
 import csv
-
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.ERROR)
+import os
 
 import warnings
-
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+documents = [10, 20, 30, 50, 100]  # possible retrieved documents
+dir_name = "./test-run/"
 
-def nlp():
-    # NLTK Stop words
-    # 5. Prepare Stopwords
-    from nltk.corpus import stopwords
 
-    stop_words = stopwords.words('english')
-    stop_words.extend(['from', 'subject', 're', 'edu', 'use'])
+def run(first, last):
+    last += 1
+    query = str(init_query)
+    query += '_{}'
+    for x in range(first, last):
+        for n in documents:
+            print("run LDA for {} documents for query {}".format(n, query.format(x)))
+            if x == 10:
+                query_stop = str(init_query + 1)
+                query_stop += '_1'
+                nlp(query.format(x), query_stop, n)
+            else:
+                nlp(query.format(x), query.format(x + 1), n)
 
-    def sent_to_words(sentences):
-        for sentence in sentences:
-            yield gensim.utils.simple_preprocess(str(sentence), deacc=True)  # deacc=True removes punctuations
+            file_name = query.format(x) + "/docs_{}".format(n)
+            full_file_path = dir_name + file_name
+            if not os.path.exists(full_file_path):
+                os.makedirs(full_file_path)
 
-    # Define functions for stopwords, bigrams, trigrams and lemmatization
-    def remove_stopwords(textss):
-        return [[word for word in simple_preprocess(str(doc)) if word not in stop_words] for doc in textss]
+            fig_name = full_file_path + "/score"
+            labels_file_name = full_file_path+"/labels.csv"
+            # todo define a good number of topics
+            if n == 10:
+                topic_num = 15
+                step_num = 1
+            elif n == 20:
+                topic_num = 37
+                step_num = 2
+            elif n == 30:
+                topic_num = 49
+                step_num = 2
+            elif n == 50:
+                topic_num = 75
+                step_num = 3
+            elif n == 100:
+                topic_num = 146
+                step_num = 5
+            else:
+                topic_num = 50
+                step_num = 1
 
-    def make_bigrams(textss):
-        return [bigram_mod[doc] for doc in textss]
+            test_model = Mallet()
+            test_model.run_multiple_mallet_and_print(fig_name, limit=topic_num, start=1, step=step_num)
+            best_score_model, output_csv = test_model.prepare_data_for_labelling()
+            #  TODO write into file, solution: compute number of rows in labels.csv
+            print(best_score_model)
+            # this file goes to Neural embedding
+            with open(labels_file_name, "w") as fb:
+                writer = csv.writer(fb)
+                writer.writerows(output_csv)
+            # python get_labels.py -cg -us -s -d <data_file> -ocg <candidates_output> -ouns <unsupervised_output> -osup <supervised_output>
+            os.chdir("NETL-Automatic-Topic-Labelling--master/model_run")
+            cand_out = "./../../test-run/" + file_name + "/output_candidates"
+            unsup_out = "./../../test-run/" + file_name + "/output_unsupervised"
+            sup_out = "./../../test-run/" + file_name + "/output_supervised"
+            label_file_name = "./../."+labels_file_name
+            os.system(
+                "python get_labels.py -cg -us -s -d " + label_file_name + " -ocg " + cand_out + " -ouns " + unsup_out + " -osup " + sup_out)
+            os.chdir("./../..")
+            # sys.exit(0)  # stop for test purpose
 
-    def make_trigrams(textss):
-        return [trigram_mod[bigram_mod[doc]] for doc in textss]
 
-    def lemmatization(textss, allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV']):
-        """https://spacy.io/api/annotation"""
-        texts_out = []
-        for sent in textss:
-            doc = nlp(" ".join(sent))
-            texts_out.append([token.lemma_ for token in doc if token.pos_ in allowed_postags])
-        return texts_out
-
-    # Import Newsgroups Data
-    # df = pd.read_json('https://raw.githubusercontent.com/selva86/datasets/master/newsgroups.json')
-    # df.head()
-
-    with open('test-data/cast/dev_manual_bm25.tsv', 'r', newline='\n') as query_passages:
-        rd = csv.reader(query_passages, delimiter=' ', quotechar='"')
-        first = next(rd)  # query id
-        passages_id = []
-        for row in rd:
-            if row[0] == '32_8':
-                break
-            if row[0] == '32_7':
-                passages_id.append(row[2])
-
-    # retrieve all relative passages to query id
-    with open('test-data/cast/dev_manual_bm25_passages.tsv', 'r', newline='\n') as passages:
-        rd = csv.reader(passages, quotechar='"', delimiter='\t')
-        passages_list = []
-        for row in rd:
-            if row[0] in passages_id:
-                passages_list.append(row[1])
-
-    # 7. Remove emails and newline characters
-    # Convert to list
-    # data = df.content.values.tolist()
-    data = passages_list
-    # Remove Emails
-    data = [re.sub('\S*@\S*\s?', '', sent) for sent in data]
-    # Remove new line characters
-    data = [re.sub('\s+', ' ', sent) for sent in data]
-    # Remove distracting single quotes
-    data = [re.sub("\'", "", sent) for sent in data]
-    out_words = open('data', 'wb')  # save in order to avoid recomputing
-    pickle.dump(data, out_words)
-    out_words.close()
-
-    # 8. Tokenize words and Clean-up text
-    data_words = list(sent_to_words(data))
-
-    # 9. Build the bigram and trigram models
-    bigram = gensim.models.Phrases(data_words, min_count=5, threshold=100)  # higher threshold fewer phrases.
-    trigram = gensim.models.Phrases(bigram[data_words], threshold=100)
-    # Faster way to get a sentence clubbed as a trigram/bigram
-    bigram_mod = gensim.models.phrases.Phraser(bigram)
-    trigram_mod = gensim.models.phrases.Phraser(trigram)
-
-    # 10. Remove Stopwords, Make Bigrams and Lemmatize
-    # Remove Stop Words
-    data_words_nostops = remove_stopwords(data_words)
-    # Form Bigrams
-    data_words_bigrams = make_bigrams(data_words_nostops)
-    # Initialize spacy 'en_core_web_sm' model, keeping only tagger component (for efficiency)
-    # python3 -m spacy download en_core_web_sm
-    nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner'])
-    print("nlp")
-    # Do lemmatization keeping only noun, adj, vb, adv
-    data_lemmatized = lemmatization(data_words_bigrams,
-                                    allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV'])  # time comsuming here
-    print("lemmatizing")
-    print(data_lemmatized[:1])
-
-    # 11. Create the Dictionary and Corpus needed for Topic Modeling
-    # Create Dictionary
-    id2word = corpora.Dictionary(data_lemmatized)
-    out_words = open('words', 'wb')  # save in order to avoid recomputing
-    pickle.dump(id2word, out_words)
-    out_words.close()
-    # Create Corpus
-    texts = data_lemmatized
-    out_lemmatized = open('lemmatized', 'wb')
-    pickle.dump(data_lemmatized, out_lemmatized)
-    out_lemmatized.close()
-    # Term Document Frequency
-    corpus = [id2word.doc2bow(text) for text in texts]
-    out_corpus = open('corpus', 'wb')
-    pickle.dump(corpus, out_corpus)
-    out_corpus.close()
-    print("11 ended")
-
-    # 12. Build LDA model
-    # lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
-    #                                             id2word=id2word,
-    #                                             num_topics=20,
-    #                                             random_state=100,
-    #                                             update_every=1,
-    #                                             chunksize=100,
-    #                                             passes=10,
-    #                                             alpha='auto',
-    #                                             per_word_topics=True)
-    # print("model built")
-    # # save model to file
-    # out_lda_filename = open('lda-model', 'wb')
-    # pickle.dump(lda_model, out_lda_filename)
-    # out_lda_filename.close()
-
-    # 13. View the topics in LDA model
-    # Print the Keyword in the 10 topics
-    # pprint(lda_model.print_topics())
-    # doc_lda = lda_model[corpus]
-
-    # TODO make work this
-    # 15. Visualize the topics
-    # pyLDAvis.enable_notebook()
-    # vis = pyLDAvis.gensim.prepare(lda_model, corpus, id2word)
-    # vis
-
-    # 16. Download File: http://mallet.cs.umass.edu/dist/mallet-2.0.8.zip
-    # mallet_path = './mallet-2.0.8/bin/mallet'
-    # ldamallet = gensim.models.wrappers.LdaMallet(mallet_path, corpus=corpus, num_topics=5, id2word=id2word)
-    #
-    # # Show Topics
-    # pprint(ldamallet.show_topics(formatted=False))
+def test():
+    query = str(init_query)
+    query += '_{}'
+    print(query.format(2 + 1))
 
 
 if __name__ == "__main__":
-    nlp()
-    print("run multiple LDAs")
-    test_model = Mallet()
-    test_model.run_multiple_mallet_and_print(limit=20, start=1, step=1)
-    print("finish")
+    init_query = 50
+    run(1, 2)

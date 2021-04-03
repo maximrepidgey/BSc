@@ -1,0 +1,50 @@
+top 3 labels for topic 0 are:
+navigation_system
+satellite_navigation
+modulation
+
+top 3 labels for topic 1 are:
+geostationary_orbit
+communications_satellite
+space_exploration
+
+top 3 labels for topic 2 are:
+area
+distance
+size
+
+top 3 labels for topic 3 are:
+an_object
+trajectory
+detection
+
+top 3 labels for topic 4 are:
+rotation
+radio_frequency
+rotational_speed
+
+top 3 labels for topic 5 are:
+fact
+principle
+observable
+
+top 3 labels for topic 6 are:
+orbit
+circular_orbit
+polar_orbit
+
+top 3 labels for topic 7 are:
+to_the_earth
+change_over_time
+potential
+
+top 3 labels for topic 8 are:
+radiation
+attenuation
+temperature
+
+top 3 labels for topic 9 are:
+addition
+typical
+horizontal_and_vertical
+

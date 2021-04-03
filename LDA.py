@@ -9,6 +9,8 @@ import pyLDAvis
 import pyLDAvis.gensim  # don't skip this
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
+import csv
+
 os.environ.update({'MALLET_HOME': r'./mallet-2.0.8/bin/mallet'})
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -50,7 +52,7 @@ class Mallet:
         self.corpus = init_corpus()
         self.words = init_words()
 
-    def run_multiple_mallet_and_print(self, limit=20, start=2, step=2):
+    def run_multiple_mallet_and_print(self, name, limit=20, start=2, step=2):
         model_list, coherence_values = self.compute_coherence_values(limit, start, step)
         # save values
         out_lemmatized = open('values_mallet', 'wb')
@@ -58,11 +60,14 @@ class Mallet:
         out_lemmatized.close()
         # Show graph
         x = range(start, limit, step)
-        plt.plot(x, coherence_values)
+        plt.plot(x, coherence_values, linestyle='--', marker="o")
         plt.xlabel("Num Topics")
         plt.ylabel("Coherence score")
         plt.legend("coherence_values", loc='best')
-        plt.show()
+        name += '.png'
+        plt.savefig(name)
+        # plt.show()  # ?needed to flush the previous plot?
+        plt.close('all')
 
     def load_multiple_mallet(self):
         return get_file("values_mallet")
@@ -155,33 +160,45 @@ class Mallet:
         vis = pyLDAvis.gensim.prepare(model, self.corpus, self.words)
         vis
 
-    def normalize_output_topics(self):
-        topics = best_model.show_topics(formatted=False)
+    def normalize_output_topics(self, best):
+        topics = best.show_topics(formatted=False)
         num_terms = len(topics[0][1])
-        print("topic_id", end=',')
+        output = [["topic_id"]]
         for x in range(num_terms):
-            if x == num_terms-1:
-                print("term{}".format(x), end='\n')
+            if x == num_terms - 1:
+                tmp = "term{}".format(x)
             else:
-                print("term{}".format(x), end=',')
+                tmp = "term{}".format(x)
+            output[0].append(tmp)
         for i in range(len(topics)):
-            print(topics[i][0], end=', ')
+            # set topics in order, it is important for neural embedding
+            line = [i]
             terms = topics[i][1]
             for k in range(num_terms):
-                if k == num_terms-1:
-                    print(terms[k][0], sep='', end='\n')
+                if k == num_terms - 1:
+                    line.append(str(terms[k][0]))
                 else:
-                    print(terms[k][0], sep='', end=',')
+                    line.append(str(terms[k][0]))
+            output.append(line)
+        return output
+
+    # todo discover why only 10 topics are generated for labelling
+    def prepare_data_for_labelling(self):
+        mallet_values = self.load_multiple_mallet()
+        best_score_pos = mallet_values['values'].index(max(mallet_values['values']))
+        best_model = mallet_values['model'][best_score_pos]
+        pprint(best_model.show_topics(formatted=False))
+        output_csv = self.normalize_output_topics(best_model)
+        return best_score_pos, output_csv
 
 
 if __name__ == "__main__":
     test_model = Mallet()
+    best_score_pos, output_csv = test_model.prepare_data_for_labelling()
+    with open("./resultsss.csv", "w") as fb:
+        writer = csv.writer(fb, quoting=csv.QUOTE_NONE, escapechar=' ')
+        writer.writerows(output_csv)
 
-    mallet_values = test_model.load_multiple_mallet()
-    best_score_pos = mallet_values['values'].index(max(mallet_values['values']))
-    best_model = mallet_values['model'][best_score_pos]
-    pprint(best_model.show_topics(formatted=False))
-    test_model.normalize_output_topics()
     # exit(0)
     # test_model.run_multiple_mallet_and_print(limit=16, start=1, step=1)
     # test_model.df_topic_sent_keywords_print()

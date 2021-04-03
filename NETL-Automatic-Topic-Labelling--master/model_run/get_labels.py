@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser()
 
 #Common Parameters
 # data = "toy_data/toytopics.csv"  # The file in csv format which contains the topic terms that needs a label.
-data = "data/run.csv"  # The file in csv format which contains the topic terms that needs a label.
+# data = "data/run.csv"  # The file in csv format which contains the topic terms that needs a label.
 
 #Parameters for candidate Generation of Labels
 doc2vecmodel = "pre_trained_models/doc2vec/docvecmodel.d2v" # Path for Doc2vec Model.
@@ -51,18 +51,23 @@ pretrained_svm_model = "./support_files/svm_model" # This is trained supervised 
 out_sup ="./output_supervised" # The output file for supervised labels.
 parser.add_argument("-s", "--supervised", help ="get supervised labels", action ="store_true")
 
+parser.add_argument("-ocg", dest="output_cand", action="store", default="output_candidates")
+parser.add_argument("-ouns", dest="output_uns", action="store", default="output_unsupervised")
+parser.add_argument("-osup", dest="output_sup", action="store", default="output_supervised")
+parser.add_argument("-d", dest="data", action="store", default="data/run.csv")
+
 args = parser.parse_args()
-if args.candidates:  # It calls unsupervised_labels python file to get labels in unsupervised way
-    query1 = "python3 cand_generation.py "+str(num_candidates)+" "+doc2vecmodel+" "+word2vecmodel+" "+data+" "+output_filename +" "+doc2vec_indices_file+" "+word2vec_indices_file
+if args.candidates:  # It calls cand_generation python file to get labels in unsupervised way
+    query1 = "python3 cand_generation.py "+str(num_candidates)+" "+doc2vecmodel+" "+word2vecmodel+" "+args.data+" "+args.output_cand +" "+doc2vec_indices_file+" "+word2vec_indices_file
     print ("Extracting candidate labels")
     os.system(query1)
 
 if args.unsupervised:  # It calls unsupervised_labels python file to get labels in unsupervised way
-    query2 = "python3 unsupervised_labels.py "+str(num_unsup_labels)+" "+data+" "+cand_gen_output +" "+out_unsup
+    query2 = "python3 unsupervised_labels.py "+str(num_unsup_labels)+" "+args.data+" "+args.output_cand +" "+args.output_uns
     print ("Executing Unsupervised model")
     os.system(query2)
 
 if args.supervised:  # It calls supervised_labels python file to get labels in supervised way.
-    query3 = "python3 supervised_labels.py " +str(num_sup_labels)+" "+pagerank_model+" "+data+" "+cand_gen_output+" "+svm_classify+" "+pretrained_svm_model+" "+out_sup
+    query3 = "python3 supervised_labels.py " +str(num_sup_labels)+" "+pagerank_model+" "+args.data+" "+args.output_cand+" "+svm_classify+" "+pretrained_svm_model+" "+args.output_sup
     print ("Executing Supervised Model")
     os.system(query3)

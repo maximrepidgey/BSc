@@ -58,7 +58,7 @@ with open(args.word2vec_indices, 'rb') as n:
 # Models loaded
 model1 = Doc2Vec.load(args.doc2vecmodel)
 model2 = Word2Vec.load(args.word2vecmodel)
-print ("models loaded")
+print("models loaded")
 
 # Loading the data file
 topics = pd.read_csv(args.data)
@@ -67,32 +67,33 @@ try:
     topic_list = new_frame.set_index('topic_id').T.to_dict('list')
 except:
     topic_list = topics.set_index('topic_id').T.to_dict('list')
-print ("Data Gathered")
+print("Data Gathered")
 
 
 w_indices = list(set(w_indices))
 d_indices = list(set(d_indices))
 
-# Models normalised in unit vectord from the indices given above in pickle files.
-model1.syn0norm = (model1.wv.vectors / sqrt((model1.wv.vectors **2).sum(-1))[..., newaxis]).astype(REAL)
+# Models normalised in unit vector from the indices given above in pickle files.
+model1.syn0norm = (model1.wv.vectors / sqrt((model1.wv.vectors ** 2).sum(-1))[..., newaxis]).astype(REAL)
 model1.docvecs.vectors_docs_norm = (model1.docvecs.vectors_docs / sqrt((model1.docvecs.vectors_docs ** 2).sum(-1))[..., newaxis]).astype(REAL)[d_indices]
-print ("doc2vec normalized")
+print("doc2vec normalized")
 
 model2.syn0norm = (model2.wv.vectors / sqrt((model2.wv.vectors ** 2).sum(-1))[..., newaxis]).astype(REAL)
 model3 = model2.syn0norm[w_indices]
-print ("word2vec normalized")
+print("word2vec normalized")
+
 
 # This method is mainly used to remove brackets from the candidate labels.
-
 def get_word(word):
     if type(word) != str:
         return word
     inst = re.search(r"_\(([A-Za-z0-9_]+)\)", word)
-    if inst == None:
+    if inst is None:
         return word
     else:
         word = re.sub(r'_\(.+\)', '', word)
         return word
+
 
 def get_labels(topic_num):
     valdoc2vec = 0.0
@@ -100,7 +101,7 @@ def get_labels(topic_num):
     cnt = 0
     store_indices = []
 
-    print ("Processing Topic number " + str(topic_num))
+    print("Processing Topic number " + str(topic_num))
 
     for item in topic_list[topic_num]:
         try:
@@ -141,7 +142,7 @@ def get_labels(topic_num):
                 distsword2vec[i_val] = 0.0
             valword2vec = valword2vec + distsword2vec
 
-    print ("Topic "+ str(topic_num) + " (Progress 1/10): item iteration done")
+    print("Topic "+ str(topic_num) + " (Progress 1/10): item iteration done")
 
     # Give the average vector over all topic words
     avgdoc2vec = valdoc2vec / float(len(topic_list[topic_num]))
