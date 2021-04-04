@@ -9,7 +9,7 @@ __pycache__/
 
 # files
 mallet-2.0.8/
-values_mallet
+lda-data/values_mallet
 test-data/
 #test-run/
 

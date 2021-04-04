@@ -1,6 +1,4 @@
 import re
-import numpy as np
-import pandas as pd
 from pprint import pprint
 import pickle
 
@@ -9,23 +7,17 @@ import gensim
 import gensim.corpora as corpora
 from gensim.utils import simple_preprocess
 from gensim.models import CoherenceModel
-from LDA import Mallet
 
-# spacy for lemmatization
-import spacy
-
-# Plotting tools
-import pyLDAvis
-import pyLDAvis.gensim  # don't skip this
-import matplotlib.pyplot as plt
+from nltk.corpus import stopwords
+import spacy  # spacy for lemmatization
 
 # Enable logging for gensim - optional
 import logging
 import csv
+import warnings
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.ERROR)
 
-import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
@@ -33,8 +25,6 @@ def nlp(query_id, query_id_stop, n_documents):
     n_documents -= 1
     # NLTK Stop words
     # 5. Prepare Stopwords
-    from nltk.corpus import stopwords
-
     stop_words = stopwords.words('english')
     stop_words.extend(['from', 'subject', 're', 'edu', 'use'])
 
@@ -87,17 +77,17 @@ def nlp(query_id, query_id_stop, n_documents):
             if row[0] in passages_id:
                 passages_list.append(row[1])
 
-    # 7. Remove emails and newline characters
-    # Convert to list
+    data = passages_list  # set data, must be a list
     # data = df.content.values.tolist()
-    data = passages_list
+
+    # 7. Remove emails and newline characters
     # Remove Emails
     data = [re.sub('\S*@\S*\s?', '', sent) for sent in data]
     # Remove new line characters
     data = [re.sub('\s+', ' ', sent) for sent in data]
     # Remove distracting single quotes
     data = [re.sub("\'", "", sent) for sent in data]
-    out_words = open('data', 'wb')  # save in order to avoid recomputing
+    out_words = open('lda-data/data', 'wb')  # save in order to avoid recomputing
     pickle.dump(data, out_words)
     out_words.close()
 
@@ -129,17 +119,17 @@ def nlp(query_id, query_id_stop, n_documents):
     # 11. Create the Dictionary and Corpus needed for Topic Modeling
     # Create Dictionary
     id2word = corpora.Dictionary(data_lemmatized)
-    out_words = open('words', 'wb')  # save in order to avoid recomputing
+    out_words = open('lda-data/words', 'wb')  # save in order to avoid recomputing
     pickle.dump(id2word, out_words)
     out_words.close()
     # Create Corpus
     texts = data_lemmatized
-    out_lemmatized = open('lemmatized', 'wb')
+    out_lemmatized = open('lda-data/lemmatized', 'wb')
     pickle.dump(data_lemmatized, out_lemmatized)
     out_lemmatized.close()
     # Term Document Frequency
     corpus = [id2word.doc2bow(text) for text in texts]
-    out_corpus = open('corpus', 'wb')
+    out_corpus = open('lda-data/corpus', 'wb')
     pickle.dump(corpus, out_corpus)
     out_corpus.close()
     print("11 ended")
@@ -159,21 +149,3 @@ def nlp(query_id, query_id_stop, n_documents):
     # out_lda_filename = open('lda-model', 'wb')
     # pickle.dump(lda_model, out_lda_filename)
     # out_lda_filename.close()
-
-    # 13. View the topics in LDA model
-    # Print the Keyword in the 10 topics
-    # pprint(lda_model.print_topics())
-    # doc_lda = lda_model[corpus]
-
-    # TODO make work this
-    # 15. Visualize the topics
-    # pyLDAvis.enable_notebook()
-    # vis = pyLDAvis.gensim.prepare(lda_model, corpus, id2word)
-    # vis
-
-    # 16. Download File: http://mallet.cs.umass.edu/dist/mallet-2.0.8.zip
-    # mallet_path = './mallet-2.0.8/bin/mallet'
-    # ldamallet = gensim.models.wrappers.LdaMallet(mallet_path, corpus=corpus, num_topics=5, id2word=id2word)
-    #
-    # # Show Topics
-    # pprint(ldamallet.show_topics(formatted=False))

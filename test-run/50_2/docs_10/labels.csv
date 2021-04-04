@@ -1,7 +1,4 @@
 topic_id,term0,term1,term2,term3,term4,term5,term6,term7,term8,term9
-0,earth,type,geosynchronous,basic,classify,km,leo,circularise,purpose,depend
-1,satellite,inclination,orbit,increase,height,orbital,day,return,download,attention
-2,satellite,earth,artificial,accord,initial,change,greatly,number,overlapping,launch
-3,orbit,low,sky,planetary,time,dictate,guide,case,classified,navigation
-4,orbital,rotation,degree,direct,prograde,direction,call,meaning,retrograde,common
-5,geostationary,space,manoeuvre,engine,typically,apogee,delta,medium,include,station
+0,orbit,geostationary,geosynchronous,height,low,basic,space,mile,circular,accord
+1,orbital,inclination,degree,direct,apogee,call,manoeuvre,direction,meaning,typically
+2,satellite,earth,type,rotation,increase,retrograde,day,station,medium,dictate

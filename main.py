@@ -1,5 +1,5 @@
 from NLP import nlp
-from LDA import Mallet
+import LDA
 
 import sys
 import csv
@@ -8,8 +8,8 @@ import os
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-documents = [10, 20, 30, 50, 100]  # possible retrieved documents
-dir_name = "./test-run/"
+documents = [10, 20, 30, 50, 100]  # possible number of retrieved documents
+dir_name = "test-run/"  # dir_name must be of format <path>/
 
 
 def run(first, last):
@@ -28,46 +28,45 @@ def run(first, last):
 
             file_name = query.format(x) + "/docs_{}".format(n)
             full_file_path = dir_name + file_name
-            if not os.path.exists(full_file_path):
-                os.makedirs(full_file_path)
+            if not os.path.exists(full_file_path): os.makedirs(full_file_path)
 
             fig_name = full_file_path + "/score"
             labels_file_name = full_file_path+"/labels.csv"
             # todo define a good number of topics
             if n == 10:
-                topic_num = 15
+                topic_num = 16
                 step_num = 1
-            elif n == 20:
-                topic_num = 37
+            elif n == 20:  # 39 topics
+                topic_num = 40
                 step_num = 2
-            elif n == 30:
-                topic_num = 49
+            elif n == 30:  # 51 topic
+                topic_num = 52
                 step_num = 2
-            elif n == 50:
-                topic_num = 75
+            elif n == 50:  # 76 topic
+                topic_num = 77
                 step_num = 3
-            elif n == 100:
-                topic_num = 146
+            elif n == 100:  # 146 topic
+                topic_num = 147
                 step_num = 5
             else:
                 topic_num = 50
                 step_num = 1
 
-            test_model = Mallet()
+            test_model = LDA.Mallet()
             test_model.run_multiple_mallet_and_print(fig_name, limit=topic_num, start=1, step=step_num)
-            best_score_model, output_csv = test_model.prepare_data_for_labelling()
-            #  TODO write into file, solution: compute number of rows in labels.csv
-            print(best_score_model)
+            output_csv = LDA.prepare_data_for_labelling()
+            # in order to find number of topics for best model compute number of rows in labels.csv
             # this file goes to Neural embedding
             with open(labels_file_name, "w") as fb:
                 writer = csv.writer(fb)
                 writer.writerows(output_csv)
+
             # python get_labels.py -cg -us -s -d <data_file> -ocg <candidates_output> -ouns <unsupervised_output> -osup <supervised_output>
             os.chdir("NETL-Automatic-Topic-Labelling--master/model_run")
-            cand_out = "./../../test-run/" + file_name + "/output_candidates"
-            unsup_out = "./../../test-run/" + file_name + "/output_unsupervised"
-            sup_out = "./../../test-run/" + file_name + "/output_supervised"
-            label_file_name = "./../."+labels_file_name
+            cand_out = "./../../" + full_file_path + "/output_candidates"
+            unsup_out = "./../../" + full_file_path + "/output_unsupervised"
+            sup_out = "./../../" + full_file_path + "/output_supervised"
+            label_file_name = "./../../"+labels_file_name
             os.system(
                 "python get_labels.py -cg -us -s -d " + label_file_name + " -ocg " + cand_out + " -ouns " + unsup_out + " -osup " + sup_out)
             os.chdir("./../..")
@@ -75,11 +74,13 @@ def run(first, last):
 
 
 def test():
-    query = str(init_query)
-    query += '_{}'
-    print(query.format(2 + 1))
+    i = 0
+    for x in range(1, 147, 5):
+        i += 1
+        print(x, end=", ")
+    print(i)
 
 
 if __name__ == "__main__":
     init_query = 50
-    run(1, 2)
+    run(3, 10)

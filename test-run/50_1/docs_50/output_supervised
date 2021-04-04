@@ -1,50 +1,65 @@
 Top 3 labels for topic 0 are:
-communications_satellite
-satellite_geodesy
-global_positioning_system
+electromagnetic_field
+magnetic_field
+electron
 
 Top 3 labels for topic 1 are:
-reference
-information
-sense
+in_the_world
+addition
+up_to
 
 Top 3 labels for topic 2 are:
-global_positioning_system
-positioning_system
-calibration
+lunar_orbit
+orbital_inclination
+geostationary_orbit
 
 Top 3 labels for topic 3 are:
-space_station
+experiment
+german_aerospace_center
 space_exploration
-spacecraft
 
 Top 3 labels for topic 4 are:
-soviet_union
-nikita_khrushchev
-artificial_gravity
+natural_environment
+branches_of_science
+reference
 
 Top 3 labels for topic 5 are:
-the_launch
-computer
-experiment
+technology
+an
+eventually
 
 Top 3 labels for topic 6 are:
-sense
-natural_environment
-earth
+radio_propagation
+communications_satellite
+radio
 
 Top 3 labels for topic 7 are:
-satellite_geodesy
-earth_observation
-data_collection
+communications_satellite
+weather_satellite
+saturn_v
 
 Top 3 labels for topic 8 are:
-unmanned_spacecraft
-spacecraft
-robotic_spacecraft
+perception
+space_exploration
+information
 
 Top 3 labels for topic 9 are:
-korolev_(martian_crater)
-korolyov
-space_station
+solar_observation
+solar_irradiance
+solar_cycle
+
+Top 3 labels for topic 10 are:
+federation
+addition
+region
+
+Top 3 labels for topic 11 are:
+sputnik_1
+telecommunication
+telegraphy
+
+Top 3 labels for topic 12 are:
+sputnik_1
+launch_vehicle
+the_launch
 

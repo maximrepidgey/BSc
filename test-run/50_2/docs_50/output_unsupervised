@@ -1,50 +1,140 @@
 top 3 labels for topic 0 are:
-orbital_inclination
-precession
-orbital_mechanics
+planetary_system
+exoplanet
+binary_star
 
 top 3 labels for topic 1 are:
-satellite
-the_satellite
-satellite_television
+hubble_space_telescope
+angular_distance
+proper_motion
 
 top 3 labels for topic 2 are:
-produce
-simple
-example
+angular_velocity
+gravitational_acceleration
+acceleration
 
 top 3 labels for topic 3 are:
-orbital_eccentricity
-geocentric_orbit
-barycenter
+the_satellite
+spacecraft
+radio_frequency
 
 top 3 labels for topic 4 are:
-information
-direct
-addition
+circumference
+surface_area
+speed
 
 top 3 labels for topic 5 are:
-capability
-information
-low_earth_orbit
+orbital_eccentricity
+geocentric_orbit
+orbit
 
 top 3 labels for topic 6 are:
-the_difference
-the_advantage
-particular
+rocket_engine
+rocket_launch
+third_stage
 
 top 3 labels for topic 7 are:
-monitoring
-need_to
-apparently
+the_surface
+attenuation
+precipitation
 
 top 3 labels for topic 8 are:
-the_satellite
-from_satellite
-satellite_internet_access
+communications_satellite
+signal_generator
+information
 
 top 3 labels for topic 9 are:
-potential
-information
-make_it
+communication
+base_station
+communications_system
+
+top 3 labels for topic 10 are:
+synchronization
+geosynchronous_orbit
+satellite_system_(astronomy)
+
+top 3 labels for topic 11 are:
+satellite_navigation
+military_aircraft
+space_exploration
+
+top 3 labels for topic 12 are:
+earth
+to_the_earth
+return_to_earth
+
+top 3 labels for topic 13 are:
+orbital_resonance
+asteroid_belt
+binary_system
+
+top 3 labels for topic 14 are:
+wavelength
+attitude_control
+radiation
+
+top 3 labels for topic 15 are:
+west
+the_opposite_direction
+ground_track
+
+top 3 labels for topic 16 are:
+lunar_orbit
+polar_orbit
+circular_orbit
+
+top 3 labels for topic 17 are:
+typical
+generally
+example
+
+top 3 labels for topic 18 are:
+resonance
+cruise_missile
+cubesat
+
+top 3 labels for topic 19 are:
+geostationary_orbit
+magnetic_field
+orbit
+
+top 3 labels for topic 20 are:
+orbital_inclination
+orbital_mechanics
+polar_orbit
+
+top 3 labels for topic 21 are:
+satellite
+satellite_constellation
+communications_satellite
+
+top 3 labels for topic 22 are:
+distance
+amateur_television
+about_a_mile
+
+top 3 labels for topic 23 are:
+spacecraft
+launch_vehicle
+spaceplane
+
+top 3 labels for topic 24 are:
+geostationary_orbit
+geostationary_transfer_orbit
+sun-synchronous_orbit
+
+top 3 labels for topic 25 are:
+earth_observation
+addition
+ionosphere
+
+top 3 labels for topic 26 are:
+rotational_speed
+geostationary_orbit
+orbital_inclination
+
+top 3 labels for topic 27 are:
+orbital_inclination
+orbit
+orbital_speed
 

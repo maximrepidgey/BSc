@@ -1,50 +1,330 @@
 Top 3 labels for topic 0 are:
-being
-real
-software
+weather
+weather_forecasting
+weather_satellite
 
 Top 3 labels for topic 1 are:
-road
-area
-addition
+polar_orbit
+geosynchronous_orbit
+spaceflight
 
 Top 3 labels for topic 2 are:
-wide-field_infrared_survey_explorer
-astronomy
-astrometry
+the_launch
+information
+implementation
 
 Top 3 labels for topic 3 are:
-iridium_satellite_constellation
-satellite_constellation
-satellite
+international_space_station
+space_station
+human_spaceflight
 
 Top 3 labels for topic 4 are:
-circular_orbit
-coordinate_system
-light
+asteroid_belt
+lunar_orbit
+orbital_resonance
 
 Top 3 labels for topic 5 are:
-geosynchronous_orbit
-lunar_orbit
-space_station
+rocket
+fighter_aircraft
+rocket_engine
 
 Top 3 labels for topic 6 are:
+the_satellite
 circular_orbit
-angular_velocity
-addition
+low_earth_orbit
 
 Top 3 labels for topic 7 are:
-the_difference
-concept
-particular
+geometric_algebra
+finite_element_method
+simple
 
 Top 3 labels for topic 8 are:
-john_russell_(westminster_mp)
-thomas
-james_barclay_(priest)
+communication
+communications_system
+national_security_service_(armenia)
 
 Top 3 labels for topic 9 are:
-requirement
+circular_motion
+move_forward
+rotational_speed
+
+Top 3 labels for topic 10 are:
+astronomical_unit
+asteroid_belt
+geometric_albedo
+
+Top 3 labels for topic 11 are:
+circular_orbit
+orbital_speed
+time
+
+Top 3 labels for topic 12 are:
+medium_earth_orbit
+the_surface
+water_content
+
+Top 3 labels for topic 13 are:
+venus_express
+saturn
+space_exploration
+
+Top 3 labels for topic 14 are:
+lead
+time
+spacecraft
+
+Top 3 labels for topic 15 are:
+vector_space
+example
+distinct
+
+Top 3 labels for topic 16 are:
+polar_orbit
+circular_orbit
+geosynchronous_orbit
+
+Top 3 labels for topic 17 are:
+lunar_space_elevator
+reason
+like
+
+Top 3 labels for topic 18 are:
+planet
+spaceflight
+space_probe
+
+Top 3 labels for topic 19 are:
+star
+an
+potential
+
+Top 3 labels for topic 20 are:
+specific
+lunar_lander
+as_it_is
+
+Top 3 labels for topic 21 are:
+north_magnetic_pole
+north
+celestial_equator
+
+Top 3 labels for topic 22 are:
+enabling
+limiting_factor
+usable
+
+Top 3 labels for topic 23 are:
 present
+region
+other
+
+Top 3 labels for topic 24 are:
+research
+computing
+microwave
+
+Top 3 labels for topic 25 are:
+planet
+dwarf_planet
+exoplanet
+
+Top 3 labels for topic 26 are:
+find
+finding
+reason
+
+Top 3 labels for topic 27 are:
+circular_orbit
+orbital_period
+orbital_inclination
+
+Top 3 labels for topic 28 are:
+geostationary_orbit
+polar_orbit
+lunar_orbit
+
+Top 3 labels for topic 29 are:
+geosynchronous_orbit
+information
+general_relativity
+
+Top 3 labels for topic 30 are:
+information
+present
+various
+
+Top 3 labels for topic 31 are:
+ellipsoid
+angular_velocity
+solar_system
+
+Top 3 labels for topic 32 are:
+solar_sail
+spacecraft_propulsion
+space_shuttle
+
+Top 3 labels for topic 33 are:
+nuclear_power
+nuclear_power_plant
+nuclear_weapon
+
+Top 3 labels for topic 34 are:
+medium_earth_orbit
+outer_space
+saturn
+
+Top 3 labels for topic 35 are:
+gravitational_wave
+gravity
+exoplanet
+
+Top 3 labels for topic 36 are:
+communication
+educational_technology
+telecommunication
+
+Top 3 labels for topic 37 are:
+acceleration
+temperature
+thermal_expansion
+
+Top 3 labels for topic 38 are:
+geostationary_orbit
+communications_satellite
+inertial_navigation_system
+
+Top 3 labels for topic 39 are:
+weather_satellite
+communications_satellite
+human_spaceflight
+
+Top 3 labels for topic 40 are:
+kosmos_(satellite)
+international_launch_services
+the_launch
+
+Top 3 labels for topic 41 are:
+amateur_radio
+radio
+satellite_television
+
+Top 3 labels for topic 42 are:
+specific
+potential
+recent
+
+Top 3 labels for topic 43 are:
+magnetic_field
+nuclear_magnetic_resonance
+magnetic_anomaly
+
+Top 3 labels for topic 44 are:
+magnetic_field
+mass_spectrometry
+acceleration
+
+Top 3 labels for topic 45 are:
+equator
+geostationary_orbit
+celestial_equator
+
+Top 3 labels for topic 46 are:
+orbital_inclination
+orbital_period
+orbital_plane_(astronomy)
+
+Top 3 labels for topic 47 are:
+irradiation
+observable
+ionizing_radiation
+
+Top 3 labels for topic 48 are:
+light
+attenuation
+thermal_expansion
+
+Top 3 labels for topic 49 are:
 system
+addition
+nature
+
+Top 3 labels for topic 50 are:
+house
+stone
+sarah
+
+Top 3 labels for topic 51 are:
+normal
+size
+up_to
+
+Top 3 labels for topic 52 are:
+natural_satellite
+dwarf_planet
+an_object
+
+Top 3 labels for topic 53 are:
+speed
+rotational_speed
+efficiency
+
+Top 3 labels for topic 54 are:
+reason
+nature
+information
+
+Top 3 labels for topic 55 are:
+actually
+eventually
+while
+
+Top 3 labels for topic 56 are:
+addition
+area
+up_to
+
+Top 3 labels for topic 57 are:
+apparently
+about
+result
+
+Top 3 labels for topic 58 are:
+iridium_satellite_constellation
+communications_satellite
+orbital_sciences_corporation
+
+Top 3 labels for topic 59 are:
+information
+transport
+space_station
+
+Top 3 labels for topic 60 are:
+prior
+being
+initial
+
+Top 3 labels for topic 61 are:
+satellite_navigation
+synchronization
+global_positioning_system
+
+Top 3 labels for topic 62 are:
+synchronization
+electric_motor
+analog_computer
+
+Top 3 labels for topic 63 are:
+orbital_eccentricity
+geocentric_orbit
+earth
+
+Top 3 labels for topic 64 are:
+thermosphere
+exosphere
+atmosphere_of_earth
+
+Top 3 labels for topic 65 are:
+military
+military_aviation
+military_personnel
 

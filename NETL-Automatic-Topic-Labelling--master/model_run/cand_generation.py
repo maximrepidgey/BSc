@@ -135,21 +135,21 @@ def get_labels(topic_num):
 
             """
 
-            if (model2.wv.vocab[item].index) in w_indices:
+            if model2.wv.vocab[item].index in w_indices:
 
                 i_val = w_indices.index(model2.wv.vocab[item].index)
                 store_indices.append(i_val)
                 distsword2vec[i_val] = 0.0
             valword2vec = valword2vec + distsword2vec
 
-    print("Topic "+ str(topic_num) + " (Progress 1/10): item iteration done")
+    print("Topic " + str(topic_num) + " (Progress 1/10): item iteration done")
 
     # Give the average vector over all topic words
     avgdoc2vec = valdoc2vec / float(len(topic_list[topic_num]))
     # Average of word2vec vector over all topic words
     avgword2vec = valword2vec / float(len(topic_list[topic_num]))
 
-    print ("Topic "+ str(topic_num) + " (Progress 2/10): average vector done")
+    print("Topic " + str(topic_num) + " (Progress 2/10): average vector done")
 
     # argsort and get top 100 doc2vec label indices
     bestdoc2vec = matutils.argsort(avgdoc2vec, topn=100, reverse=True)
@@ -160,14 +160,14 @@ def get_labels(topic_num):
         temp = model1.docvecs.index_to_doctag(ind)
         resultdoc2vec.append((temp, float(avgdoc2vec[elem])))
 
-    print ("Topic "+ str(topic_num) + " (Progress 3/10): getting the doc2vec labels done")
+    print("Topic " + str(topic_num) + " (Progress 3/10): getting the doc2vec labels done")
 
     # This modifies the average word2vec vector for cases in which the word2vec label was same as topic word.
     for element in store_indices:
         avgword2vec[element] = (
             avgword2vec[element] * len(topic_list[topic_num])) / (float(len(topic_list[topic_num]) - 1))
 
-    print ("Topic "+ str(topic_num) + " (Progress 4/10): modifying the average word2vec vector done")
+    print("Topic " + str(topic_num) + " (Progress 4/10): modifying the average word2vec vector done")
 
     # argsort and get top 100 word2vec label indices
     bestword2vec = matutils.argsort(avgword2vec, topn=100, reverse=True)
@@ -178,7 +178,7 @@ def get_labels(topic_num):
         temp = model2.wv.index2word[ind]
         resultword2vec.append((temp, float(avgword2vec[element])))
 
-    print ("Topic "+ str(topic_num) + " (Progress 5/10): getting the word2vec labels from indices done")
+    print("Topic " + str(topic_num) + " (Progress 5/10): getting the word2vec labels from indices done")
 
     # Get the combined set of both doc2vec labels and word2vec labels
     comb_labels = list(
@@ -186,7 +186,8 @@ def get_labels(topic_num):
     newlist_doc2vec = []
     newlist_word2vec = []
 
-    print ("Topic "+ str(topic_num) + " (Progress 6/10): getting the combined set of both doc2vec labels and word2vec labels done")
+    print("Topic " + str(topic_num) + " (Progress 6/10): getting the combined set of both doc2vec labels and word2vec labels done")
+    # time consuming number 6
 
     # Get indices from combined labels
     for elem in comb_labels:
@@ -202,7 +203,7 @@ def get_labels(topic_num):
     newlist_doc2vec = list(set(newlist_doc2vec))
     newlist_word2vec = list(set(newlist_word2vec))
 
-    print ("Topic "+ str(topic_num) + " (Progress 7/10): getting indices from combined labels done")
+    print("Topic " + str(topic_num) + " (Progress 7/10): getting indices from combined labels done")
 
     # Finally again get the labels from indices. We searched for the score from both doctvec and word2vec models
     resultlist_doc2vecnew = [(model1.docvecs.index_to_doctag(
@@ -210,7 +211,7 @@ def get_labels(topic_num):
     resultlist_word2vecnew = [(model2.wv.index2word[w_indices[elem]], float(
         avgword2vec[elem])) for elem in newlist_word2vec]
 
-    print ("Topic "+ str(topic_num) + " (Progress 8/10): again getting the labels from indices done")
+    print("Topic " + str(topic_num) + " (Progress 8/10): again getting the labels from indices done")
 
     # Finally get the combined score with the label. The label used will be of doc2vec not of word2vec.
     new_score = []
@@ -223,17 +224,15 @@ def get_labels(topic_num):
                 v3 = v + v2
                 new_score.append((k2, v3))
 
-    print ("Topic "+ str(topic_num) + " (Progress 9/10): getting the combined score with the label done")
+    print("Topic " + str(topic_num) + " (Progress 9/10): getting the combined score with the label done")
 
     new_score = sorted(new_score, key=lambda x: x[1], reverse=True)
 
-    print ("Topic "+ str(topic_num) + " (Progress 10/10): sorting score done")
+    print("Topic " + str(topic_num) + " (Progress 10/10): sorting score done")
     return new_score[:(int(args.num_cand_labels))]
 
 
-# cores = mp.cpu_count()
-# cores = int(cores/4)
-# pool = mp.Pool(processes=cores)
+# pool = mp.Pool(processes=2)
 # result = pool.map(get_labels, range(0, len(topic_list)))
 # fix to avoid out of memory
 result = []
@@ -249,5 +248,5 @@ for i, elem in enumerate(result):
     g.write(val + "\n")
 g.close()
 
-print ("Candidate labels written to " + args.outputfile_candidates)
-print ("\n")
+print("Candidate labels written to " + args.outputfile_candidates)
+print("\n")

@@ -1,50 +1,35 @@
 top 3 labels for topic 0 are:
-importance
-question
-context
+nature
+idea
+begun
 
 top 3 labels for topic 1 are:
-telecommunication
-information
-however
+dissemination
+data
+december
 
 top 3 labels for topic 2 are:
-earth
-martian
-space_exploration
+sputnik_1
+nature
+human
 
 top 3 labels for topic 3 are:
-computer
-satellite
-individual
+low_frequency
+radio_frequency
+radiation
 
 top 3 labels for topic 4 are:
-form
-context
-moscow_conference
+the_objective
+communication
+reason
 
 top 3 labels for topic 5 are:
-project
-technical_support
-technology
+space_exploration
+medium_earth_orbit
+low_earth_orbit
 
 top 3 labels for topic 6 are:
-even_though
-recent
-however
-
-top 3 labels for topic 7 are:
-human_spaceflight
-russia
-soviet_union
-
-top 3 labels for topic 8 are:
-radiation
-atmosphere_of_venus
-electromagnetic_radiation
-
-top 3 labels for topic 9 are:
-eventually
-potential
-lunar_lander
+communications_satellite
+lunar_orbit
+geosynchronous_orbit
 
