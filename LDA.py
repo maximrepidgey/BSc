@@ -1,9 +1,11 @@
 import pickle
 import gensim
 from gensim.models import CoherenceModel
+from gensim.models.ldamulticore import LdaMulticore
 from pprint import pprint
 import pandas as pd
 import os
+import time
 
 import pyLDAvis
 import pyLDAvis.gensim  # don't skip this
@@ -13,7 +15,6 @@ import csv
 
 import warnings
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 os.environ.update({'MALLET_HOME': r'./mallet-2.0.8/bin/mallet'})
 pd.set_option('display.max_columns', None)
@@ -54,6 +55,10 @@ def get_file(filename):
     return tmp
 
 
+def load_multiple_mallet():
+    return get_file("lda-data/values_mallet")
+
+
 def normalize_output_topics(best):
     topics = best.show_topics(formatted=False, num_topics=best.get_topics().shape[0])  # all topics
     num_terms = len(topics[0][1])
@@ -75,10 +80,6 @@ def normalize_output_topics(best):
                 line.append(str(terms[k][0]))
         output.append(line)
     return output
-
-
-def load_multiple_mallet():
-    return get_file("lda-data/values_mallet")
 
 
 def prepare_data_for_labelling():
@@ -121,18 +122,25 @@ def plot_multiple_models(start, limit, step, coherence_values, name=None, show=F
     plt.close('all')
 
 
-class Mallet:
+class LDA:
     def __init__(self):
         self.lemmatized = init_lemmatized()
         self.corpus = init_corpus()
         self.words = init_words()
 
-    def run_multiple_mallet_and_print(self, name, limit=10, start=1, step=2):
+    def run_multiple_mallet_and_print(self, name, limit=10, start=1, step=2, path=None):
         model_list, coherence_values = self.compute_coherence_values(limit, start, step)
         # save values
         out_lemmatized = open('lda-data/values_mallet', 'wb')
         pickle.dump({"model": model_list, "values": coherence_values}, out_lemmatized)
         out_lemmatized.close()
+        # save coherence score for each model
+        x = range(start, limit, step)
+        if path is not None:
+            out_data = open(path, 'wb')
+            pickle.dump({'model': list(x), 'values': coherence_values}, out_data)
+            out_data.close()
+
         plot_multiple_models(start, limit, step, coherence_values, name=name)
 
     def compute_coherence_values(self, limit=20, start=1, step=3):
@@ -148,10 +156,9 @@ class Mallet:
 
         return model_list, coherence_values
 
-    def create_mallet_model(self, topics=20):
+    def create_mallet_model(self, topics=20, workers=2):
         return gensim.models.wrappers.LdaMallet(mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.words,
-                                                # workers=int(os.cpu_count() / 2))
-                                                workers=8)
+                                                workers=workers)
 
     def create_mallet_model_and_save(self, topics):
         model = self.create_mallet_model(topics)
@@ -160,8 +167,11 @@ class Mallet:
         out_lda_filename.close()
         return model
 
-    def compute_coherence(self, model):
-        return CoherenceModel(model, texts=self.lemmatized, dictionary=self.words, coherence='c_v')
+    def create_lda_model(self, topics, workers=2):
+        return LdaMulticore(corpus=self.corpus, num_topics=topics, id2word=self.words, workers=workers)
+
+    def compute_coherence(self, model, workers=2, topics=None):
+        return CoherenceModel(model, topics=topics, texts=self.lemmatized, dictionary=self.words, coherence='c_v', topn=10, processes=workers)
 
     def format_topics_sentences(self):
         # Init output
@@ -210,18 +220,36 @@ class Mallet:
         vis = pyLDAvis.gensim.prepare(model, self.corpus, self.words)
         vis
 
+    def compute_top_topics(self, model):
+        return model.top_topics(corpus=self.corpus, texts=self.lemmatized, dictionary=self.words, coherence='c_v',
+                                processes=2, topn=10)
+
 
 if __name__ == "__main__":
-    test_model = Mallet()
-    # best_score_pos, output_csv = test_model.prepare_data_for_labelling()
-    # with open("./resultsss.csv", "w") as fb:
-    #     writer = csv.writer(fb, quoting=csv.QUOTE_NONE, escapechar=' ')
-    #     writer.writerows(output_csv)
-    # test_model.run_multiple_mallet_and_print("ram_test")
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-    mallet_values = load_multiple_mallet()
-    values = mallet_values['values']
-    plot_multiple_models(1, 147, 5, values, show=True)
+    lda = LDA()
+    # lda.run_multiple_mallet_and_print(limit=16, start=1, step=1)
+    # lda.df_topic_sent_keywords_print()
+    topics = 106
+    tmp_value = load_multiple_mallet()
+    tmp_value = tmp_value['values']
+    print(len(tmp_value))
+    models_num = range(1, 40, 2)
+    print(len(list(models_num)))
+    exit(0)
 
-    # test_model.run_multiple_mallet_and_print(limit=16, start=1, step=1)
-    # test_model.df_topic_sent_keywords_print()
+    start_time = time.time()
+    mallet_model = lda.create_lda_model(topics)
+    print("--- %s seconds --- for mallet" % (time.time() - start_time))
+
+    start_time = time.time()
+    lda_model = lda.create_lda_model(topics)
+    print("--- %s seconds --- for lda parallelized" % (time.time() - start_time))
+
+    print(lda.compute_coherence(mallet_model).get_coherence(), end=", ")
+    print(lda.compute_coherence(lda_model).get_coherence())
+    top_topics = lda.compute_top_topics(lda_model)
+    print(len(top_topics), end=', ')
+    print(lda.compute_coherence(None, topics=top_topics).get_coherence())
+

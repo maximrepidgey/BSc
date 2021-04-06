@@ -1,0 +1,45 @@
+top 3 labels for topic 0 are:
+system
+operating_system
+global_positioning_system
+
+top 3 labels for topic 1 are:
+russian_space_forces
+russian_air_force
+system
+
+top 3 labels for topic 2 are:
+communications_system
+guidance_system
+aerospace_defense_command
+
+top 3 labels for topic 3 are:
+satellite_television
+telecommunication
+geosynchronous_orbit
+
+top 3 labels for topic 4 are:
+addition
+technology
+calibration
+
+top 3 labels for topic 5 are:
+satellite_navigation
+inertial_navigation_system
+navigation_system
+
+top 3 labels for topic 6 are:
+addition
+implementation
+data_collection
+
+top 3 labels for topic 7 are:
+positioning_system
+earth_observation
+geolocation
+
+top 3 labels for topic 8 are:
+navigation
+navigation_system
+satellite_navigation
+

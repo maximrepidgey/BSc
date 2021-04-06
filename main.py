@@ -32,6 +32,7 @@ def run(first, last):
 
             fig_name = full_file_path + "/score"
             labels_file_name = full_file_path+"/labels.csv"
+            models_score_path = full_file_path+"/models-score"
             # todo define a good number of topics
             if n == 10:
                 topic_num = 16
@@ -52,8 +53,8 @@ def run(first, last):
                 topic_num = 50
                 step_num = 1
 
-            test_model = LDA.Mallet()
-            test_model.run_multiple_mallet_and_print(fig_name, limit=topic_num, start=1, step=step_num)
+            test_model = LDA.LDA()
+            test_model.run_multiple_mallet_and_print(fig_name, limit=topic_num, start=1, step=step_num, path=models_score_path)
             output_csv = LDA.prepare_data_for_labelling()
             # in order to find number of topics for best model compute number of rows in labels.csv
             # this file goes to Neural embedding
@@ -81,6 +82,14 @@ def test():
     print(i)
 
 
+def read_data():
+    data = LDA.get_file("./test-run/50_9/docs_30/models-score")
+    best_score_pos = data['values'].index(max(data['values']))
+    best_score = data['model'][best_score_pos]
+    print(best_score)
+    print(data)
+
+
 if __name__ == "__main__":
     init_query = 50
-    run(3, 10)
+    run(10, 10)

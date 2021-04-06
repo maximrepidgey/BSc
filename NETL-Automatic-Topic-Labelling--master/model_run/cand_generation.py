@@ -243,7 +243,7 @@ for i in range(0, len(topic_list)):
 g = open(args.outputfile_candidates, 'w')
 for i, elem in enumerate(result):
     val = ""
-    for item in elem:
+    for item in elem:  # todo add number of topic when writing to file
         val = val + " " + item[0]
     g.write(val + "\n")
 g.close()
