@@ -1,12 +1,14 @@
 from NLP import nlp
 import LDA
+from malletLDA import MalletLDA
+from classicLDA import ClassicLDA
 
 import sys
 import csv
 import os
 
 import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+# warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 documents = [10, 20, 30, 50, 100]  # possible number of retrieved documents
 dir_name = "test-run/"  # dir_name must be of format <path>/
@@ -25,6 +27,7 @@ def run(first, last):
                 nlp(query.format(x), query_stop, n)
             else:
                 nlp(query.format(x), query.format(x + 1), n)
+            sys.exit(0)
 
             file_name = query.format(x) + "/docs_{}".format(n)
             full_file_path = dir_name + file_name
@@ -53,9 +56,9 @@ def run(first, last):
                 topic_num = 50
                 step_num = 1
 
-            test_model = LDA.LDA()
-            test_model.run_multiple_mallet_and_print(fig_name, limit=topic_num, start=1, step=step_num, path=models_score_path)
-            output_csv = LDA.prepare_data_for_labelling()
+            test_model = ClassicLDA()
+            test_model.run_multiple_lda_and_print(fig_name, limit=topic_num, start=1, step=step_num, path=models_score_path)
+            output_csv = test_model.prepare_data_for_labelling()
             # in order to find number of topics for best model compute number of rows in labels.csv
             # this file goes to Neural embedding
             with open(labels_file_name, "w") as fb:
@@ -63,7 +66,7 @@ def run(first, last):
                 writer.writerows(output_csv)
 
             # python get_labels.py -cg -us -s -d <data_file> -ocg <candidates_output> -ouns <unsupervised_output> -osup <supervised_output>
-            os.chdir("NETL-Automatic-Topic-Labelling--master/model_run")
+            os.chdir("NETL-Automatic-Topic-Labelling/model_run")
             cand_out = "./../../" + full_file_path + "/output_candidates"
             unsup_out = "./../../" + full_file_path + "/output_unsupervised"
             sup_out = "./../../" + full_file_path + "/output_supervised"
@@ -72,14 +75,6 @@ def run(first, last):
                 "python get_labels.py -cg -us -s -d " + label_file_name + " -ocg " + cand_out + " -ouns " + unsup_out + " -osup " + sup_out)
             os.chdir("./../..")
             # sys.exit(0)  # stop for test purpose
-
-
-def test():
-    i = 0
-    for x in range(1, 147, 5):
-        i += 1
-        print(x, end=", ")
-    print(i)
 
 
 def read_data():
@@ -91,5 +86,6 @@ def read_data():
 
 
 if __name__ == "__main__":
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
     init_query = 50
-    run(10, 10)
+    run(7, 7)
