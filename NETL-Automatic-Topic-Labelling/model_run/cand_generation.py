@@ -12,7 +12,6 @@ doc2vec and word2vec models and normalise them to unit vector. There are a coupl
 pickle files namely doc2vec_indices and word2vec_indices  which restrict the search of
 word2vec and doc2vec labels. These pickle files are in support_files.
 """
-
 import os
 import gensim
 import pandas as pd
@@ -49,6 +48,7 @@ file which were used in to create phrases in word2vec model. The indices are tak
 trained doc2vec and word2vec models. Additionally there is some bit of preprocessing involved 
 of removing brackets from some candidate labels. To get more insight into it refer to the paper.
 """
+# TODO make gather data only once per run
 
 with open(args.doc2vec_indices, 'rb') as m:
     d_indices = pickle.load(m)
@@ -95,6 +95,7 @@ def get_word(word):
         return word
 
 
+# generate labels topic by topic
 def get_labels(topic_num):
     valdoc2vec = 0.0
     valword2vec = 0.0

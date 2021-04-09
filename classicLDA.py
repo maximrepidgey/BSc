@@ -2,6 +2,8 @@ from LDA import LDA, get_file
 from gensim.models.ldamulticore import LdaMulticore
 import csv
 import os
+import time
+from multiprocessing import Pool
 
 
 class ClassicLDA(LDA):
@@ -14,7 +16,7 @@ class ClassicLDA(LDA):
     def set_model(self, model):
         self.model = model
 
-    def create_model(self, topics=20, workers=2):
+    def create_model(self, topics=20, workers=1):
         return LdaMulticore(corpus=self.corpus, num_topics=topics, id2word=self.words, workers=workers)
 
     def load_lda_model(self):
@@ -27,5 +29,5 @@ class ClassicLDA(LDA):
 
 if __name__ == '__main__':
     model = ClassicLDA()
-    # model.run_multiple(11, "50_7")
-    model.run_neural_embedding(11, "50_7")
+    model.run_multiple_increasing_topics(8, "rapid", limit=65, start=20)
+    # model.run_neural_embedding(11, "50_7_20")

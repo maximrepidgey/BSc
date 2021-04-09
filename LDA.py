@@ -1,5 +1,6 @@
 import pickle
 from gensim.models import CoherenceModel
+
 from pprint import pprint
 import pandas as pd
 import os
@@ -10,9 +11,7 @@ from abc import abstractmethod
 import pyLDAvis
 import pyLDAvis.gensim  # don't skip this
 import matplotlib.pyplot as plt
-from multiprocessing import Pool
 import csv
-
 
 os.environ.update({'MALLET_HOME': r'./mallet-2.0.8/bin/mallet'})
 pd.set_option('display.max_columns', None)
@@ -130,7 +129,7 @@ class LDA:
         pass
 
     @abstractmethod
-    def create_model(self, topics=20, workers=2):
+    def create_model(self, topics=20, workers=1):
         pass
 
     def load_multiple_lda(self):
@@ -165,12 +164,11 @@ class LDA:
         return model_list, coherence_values
 
     # runs multiple LDA model fot k topics for n times
-    def run_multiple(self, n, folder, step=1, limit=16, start=1):
-        path = "test/" + self.get_name() + "-test/" + folder + "/"
+    def run_multiple_increasing_topics(self, n, path, step=1, limit=16, start=1):
         if not os.path.exists(path): os.makedirs(path)
 
         for x in range(1, n):
-            self.run_multiple_lda_and_print(folder + "img" + str(x), start=start, step=step, limit=limit,
+            self.run_multiple_lda_and_print(path + "img-" + str(x), start=start, step=step, limit=limit,
                                             path=path + "data-" + str(x))
             output_csv = self.prepare_data_for_labelling()
             # in order to find number of topics for best model compute number of rows in labels.csv
@@ -179,28 +177,42 @@ class LDA:
                 writer = csv.writer(fb)
                 writer.writerows(output_csv)
 
+    # runs n instance of LDA model for a fix topic
+    # returns 2 list of lists based on number of topics
+    def run_multiple_fix_topic(self, start_topic, finish_topic, n):
+        scores = []
+        models = []
+        for topic in range(start_topic, finish_topic):
+            score = []
+            model = []
+            for x in range(0, n):
+                model.append(self.create_model(topic))
+                score.append(self.compute_coherence(model[x]).get_coherence())
+            scores.append(score)
+            models.append(model)
+        return models, scores
+
     #  n-1 should be equal to number of labels.csv files
-    def run_neural_embedding(self, n, folder):
-        path = "test/" + self.get_name() + "-test/" + folder
+    def run_neural_embedding(self, n, path):
 
         os.chdir("NETL-Automatic-Topic-Labelling/model_run")
         for x in range(1, n):
-            cand_out = "./../../" + path + "/output_candidates"+str(x)
-            unsup_out = "./../../" + path + "/output_unsupervised"+str(x)
-            sup_out = "./../../" + path + "/output_supervised"+str(x)
-            label_file_name = "./../../" + path+"/labels-"+str(x)+".csv"
+            cand_out = "./../../" + path + "/output_candidates-" + str(x)
+            unsup_out = "./../../" + path + "/output_unsupervised-" + str(x)
+            sup_out = "./../../" + path + "/output_supervised-" + str(x)
+            label_file_name = "./../../" + path + "/labels-" + str(x) + ".csv"
             os.system(
                 "python get_labels.py -cg -us -s -d " + label_file_name + " -ocg " + cand_out + " -ouns " + unsup_out + " -osup " + sup_out)
         os.chdir("./../..")
 
-    def create_model_and_save(self, topics, workers=2):
+    def create_model_and_save(self, topics, workers=1):
         tmp = self.create_model(topics, workers)
         out = open("lda-data/" + self.get_name(), "wb")
         pickle.dump(tmp, out)
         out.close()
         return tmp
 
-    def compute_coherence(self, model, workers=2, topics=None):
+    def compute_coherence(self, model, workers=1, topics=None):
         return CoherenceModel(model, topics=topics, texts=self.lemmatized, dictionary=self.words, coherence='c_v',
                               topn=10, processes=workers)
 
@@ -262,4 +274,5 @@ class LDA:
 
 if __name__ == "__main__":
     lda = LDA()
-    lda.df_topic_sent_keywords_print(1)
+    # lda.df_topic_sent_keywords_print(1)
+    lda.run_neural_embedding(21, "test/mallet-test/32_1/docs_10")
