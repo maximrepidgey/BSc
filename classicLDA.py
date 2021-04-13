@@ -7,8 +7,9 @@ from multiprocessing import Pool
 
 
 class ClassicLDA(LDA):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args):
+        if len(args) > 1: super().__init__(args)
+        else: super().__init__()
         self.name = "classic"
         self.model = None
 

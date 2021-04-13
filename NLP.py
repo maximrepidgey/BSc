@@ -22,6 +22,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def nlp(query_id, query_id_stop, n_documents):
+    return_list = []
     n_documents -= 1
     # NLTK Stop words
     # 5. Prepare Stopwords
@@ -134,6 +135,7 @@ def nlp(query_id, query_id_stop, n_documents):
     out_corpus.close()
     print("11 ended")
 
+    return data, id2word, data_lemmatized, corpus
     # 12. Build LDA model
     # lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
     #                                             id2word=id2word,

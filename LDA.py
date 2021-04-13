@@ -76,6 +76,7 @@ def plot_multiple_models(start, limit, step, coherence_values, name=None, show=F
     x = range(start, limit, step)
     plt.plot(x, coherence_values, linestyle='--', marker="o")
     plt.xlabel("Num Topics")
+    # plt.xlabel("iteration")
     plt.ylabel("Coherence score")
     plt.legend("coherence_values", loc='best')
     # max point
@@ -114,15 +115,38 @@ def get_formatted_topics(model):
     return formatted_topics
 
 
+#  n-1 should be equal to number of labels.csv files
+def run_neural_embedding(path, n=2):
+
+    os.chdir("NETL-Automatic-Topic-Labelling/model_run")
+    for x in range(1, n):
+        cand_out = "./../../" + path + "/output_candidates-" + str(x)
+        unsup_out = "./../../" + path + "/output_unsupervised-" + str(x)
+        sup_out = "./../../" + path + "/output_supervised-" + str(x)
+        label_file_name = "./../../" + path + "/labels-" + str(x) + ".csv"
+        os.system(
+            "python get_labels.py -cg -us -s -d " + label_file_name + " -ocg " + cand_out + " -ouns " + unsup_out + " -osup " + sup_out)
+    os.chdir("./../..")
+
+
 class LDA:
-    def __init__(self):
-        self.lemmatized = init_lemmatized()
-        self.corpus = init_corpus()
-        self.words = init_words()
+    def __init__(self, path, *args):
+        if len(args) > 1:
+            self.lemmatized = args[0]
+            self.corpus = args[1]
+            self.words = args[2]
+        else:
+            self.lemmatized = init_lemmatized()
+            self.corpus = init_corpus()
+            self.words = init_words()
         self.name = ""
+        self.path = path
 
     def get_name(self):
         return self.name
+
+    def set_path(self, value):
+        self.path = value
 
     @abstractmethod
     def load_lda_model(self):
@@ -135,75 +159,68 @@ class LDA:
     def load_multiple_lda(self):
         return get_file("lda-data/values_" + self.get_name())
 
-    def run_multiple_lda_and_print(self, name=None, limit=10, start=1, step=2, path=None):
-        model_list, coherence_values = self.compute_coherence_values(limit, start, step)
+    def run_multiple_lda_and_print(self, name=None, topics=20, limit=10, start=1, step=1, fix=0):
+        if fix == 0:
+            model_list, coherence_values = self.compute_coherence_values_fix(limit, topics)
+        else:
+            model_list, coherence_values = self.compute_coherence_values_increasing(limit, start, step)
         # save values
         out_lemmatized = open('lda-data/values_' + self.get_name(), 'wb')
         pickle.dump({"model": model_list, "values": coherence_values}, out_lemmatized)
         out_lemmatized.close()
         # save coherence score for each model
         x = range(start, limit, step)
-        if path is not None:
-            out_data = open(path, 'wb')
-            pickle.dump({'model': list(x), 'values': coherence_values}, out_data)
-            out_data.close()
+        with open(self.path+"data-{}".format(fix), 'wb') as f:
+            pickle.dump({'model': list(x), 'values': coherence_values}, f)
 
         plot_multiple_models(start, limit, step, coherence_values, name=name)
 
-    def compute_coherence_values(self, limit=20, start=1, step=3):
+    # create LDA model for increasing number of topics, from start to limit
+    # and compute their coherence score
+    # return list of models and respective coherence score
+    def compute_coherence_values_increasing(self, limit=20, start=1, step=1):
         coherence_values = []
         model_list = []
         for num_topics in range(start, limit, step):
             model = self.create_model(num_topics)
             model_list.append(model)
-
             coherence_model = self.compute_coherence(model)
             coherence_values.append(coherence_model.get_coherence())
-            print("done with {} topics".format(num_topics))
 
         return model_list, coherence_values
 
-    # runs multiple LDA model fot k topics for n times
-    def run_multiple_increasing_topics(self, n, path, step=1, limit=16, start=1):
+    # create LDA model for fix number of topics and compute their coherence score
+    # return list of models and respective coherence score
+    def compute_coherence_values_fix(self, limit, topics):
+        scores = []
+        models = []
+        for x in range(1, limit):
+            model = self.create_model(topics)
+            models.append(model)
+            scores.append(self.compute_coherence(model).get_coherence())
+
+        return models, scores
+
+    def run_multiple_fix_topic(self, path, topics, limit=20):
         if not os.path.exists(path): os.makedirs(path)
 
+        self.run_multiple_lda_and_print(path + "img-1", limit=limit, topics=topics)
+        output_csv = self.prepare_data_for_labelling()
+        with open(path + "labels-1.csv", "w") as fb:
+            writer = csv.writer(fb)
+            writer.writerows(output_csv)
+
+    def run_multiple_increasing_topics(self, n, step=1, limit=16, start=1):
+        if not os.path.exists(self.path): os.makedirs(self.path)
+
         for x in range(1, n):
-            self.run_multiple_lda_and_print(path + "img-" + str(x), start=start, step=step, limit=limit,
-                                            path=path + "data-" + str(x))
+            self.run_multiple_lda_and_print(self.path + "img-" + str(x), fix=x, limit=limit, start=start, step=step)
             output_csv = self.prepare_data_for_labelling()
             # in order to find number of topics for best model compute number of rows in labels.csv
             # this file goes to Neural embedding
-            with open(path + "labels-" + str(x) + ".csv", "w") as fb:
+            with open(self.path + "labels-" + str(x) + ".csv", "w") as fb:
                 writer = csv.writer(fb)
                 writer.writerows(output_csv)
-
-    # runs n instance of LDA model for a fix topic
-    # returns 2 list of lists based on number of topics
-    def run_multiple_fix_topic(self, start_topic, finish_topic, n):
-        scores = []
-        models = []
-        for topic in range(start_topic, finish_topic):
-            score = []
-            model = []
-            for x in range(0, n):
-                model.append(self.create_model(topic))
-                score.append(self.compute_coherence(model[x]).get_coherence())
-            scores.append(score)
-            models.append(model)
-        return models, scores
-
-    #  n-1 should be equal to number of labels.csv files
-    def run_neural_embedding(self, n, path):
-
-        os.chdir("NETL-Automatic-Topic-Labelling/model_run")
-        for x in range(1, n):
-            cand_out = "./../../" + path + "/output_candidates-" + str(x)
-            unsup_out = "./../../" + path + "/output_unsupervised-" + str(x)
-            sup_out = "./../../" + path + "/output_supervised-" + str(x)
-            label_file_name = "./../../" + path + "/labels-" + str(x) + ".csv"
-            os.system(
-                "python get_labels.py -cg -us -s -d " + label_file_name + " -ocg " + cand_out + " -ouns " + unsup_out + " -osup " + sup_out)
-        os.chdir("./../..")
 
     def create_model_and_save(self, topics, workers=1):
         tmp = self.create_model(topics, workers)
@@ -273,6 +290,9 @@ class LDA:
 
 
 if __name__ == "__main__":
-    lda = LDA()
     # lda.df_topic_sent_keywords_print(1)
-    lda.run_neural_embedding(21, "test/mallet-test/32_1/docs_10")
+    run_neural_embedding("test/mallet-test/75_1/alpha-0-docs_30/", 6)
+    run_neural_embedding("test/mallet-test/75_1/alpha-10-docs_30/", 6)
+    run_neural_embedding("test/mallet-test/75_1/alpha-100-docs_30/", 6)
+    run_neural_embedding("test/mallet-test/75_1/docs_30/", 6)
+    # run_neural_embedding("test/rapid/32_1/docs_20")

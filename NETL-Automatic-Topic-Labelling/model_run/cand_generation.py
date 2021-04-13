@@ -13,12 +13,12 @@ pickle files namely doc2vec_indices and word2vec_indices  which restrict the sea
 word2vec and doc2vec labels. These pickle files are in support_files.
 """
 import os
-import gensim
 import pandas as pd
 from gensim.models.doc2vec import Doc2Vec
 from gensim.models import Word2Vec
-import math
-from collections import defaultdict
+import time
+import sys
+from math import ceil
 from numpy import exp, log, dot, zeros, outer, random, dtype, float32 as REAL,\
     double, uint32, seterr, array, uint8, vstack, fromstring, sqrt, newaxis,\
     ndarray, empty, sum, prod, ones, ascontiguousarray
@@ -29,17 +29,6 @@ import multiprocessing as mp
 from multiprocessing import Pool
 import argparse
 
-# Arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("num_cand_labels")
-parser.add_argument("doc2vecmodel")
-parser.add_argument("word2vecmodel")
-parser.add_argument("data")
-parser.add_argument("outputfile_candidates")
-parser.add_argument("doc2vec_indices")
-
-parser.add_argument("word2vec_indices")
-args = parser.parse_args()
 
 """
 Pickle file needed to run the code. These file have the indices of doc2vec which 
@@ -48,7 +37,17 @@ file which were used in to create phrases in word2vec model. The indices are tak
 trained doc2vec and word2vec models. Additionally there is some bit of preprocessing involved 
 of removing brackets from some candidate labels. To get more insight into it refer to the paper.
 """
-# TODO make gather data only once per run
+
+# Arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("num_cand_labels")
+parser.add_argument("doc2vecmodel")
+parser.add_argument("word2vecmodel")
+parser.add_argument("data")
+parser.add_argument("outputfile_candidates")
+parser.add_argument("doc2vec_indices")
+parser.add_argument("word2vec_indices")
+args = parser.parse_args()
 
 with open(args.doc2vec_indices, 'rb') as m:
     d_indices = pickle.load(m)
@@ -56,9 +55,10 @@ with open(args.word2vec_indices, 'rb') as n:
     w_indices = pickle.load(n)
 
 # Models loaded
+st_time = time.time()
 model1 = Doc2Vec.load(args.doc2vecmodel)
 model2 = Word2Vec.load(args.word2vecmodel)
-print("models loaded")
+print("models loaded in %s" % (time.time() - st_time))  # 40 seconds, but no problem since will be in memory
 
 # Loading the data file
 topics = pd.read_csv(args.data)
@@ -67,20 +67,34 @@ try:
     topic_list = new_frame.set_index('topic_id').T.to_dict('list')
 except:
     topic_list = topics.set_index('topic_id').T.to_dict('list')
-print("Data Gathered")
-
 
 w_indices = list(set(w_indices))
 d_indices = list(set(d_indices))
 
-# Models normalised in unit vector from the indices given above in pickle files.
-model1.syn0norm = (model1.wv.vectors / sqrt((model1.wv.vectors ** 2).sum(-1))[..., newaxis]).astype(REAL)
-model1.docvecs.vectors_docs_norm = (model1.docvecs.vectors_docs / sqrt((model1.docvecs.vectors_docs ** 2).sum(-1))[..., newaxis]).astype(REAL)[d_indices]
-print("doc2vec normalized")
+# with open("../../NETL-Automatic-Topic-Labelling/model_run/pre_trained_models/doc2vec/vec", "wb") as f:
+#     syn0norm = (model1.wv.vectors / sqrt((model1.wv.vectors ** 2).sum(-1))[..., newaxis]).astype(REAL)
+#     vectors_docs_norm = (model1.docvecs.vectors_docs / sqrt((model1.docvecs.vectors_docs ** 2).sum(-1))[..., newaxis]).astype(REAL)[d_indices]
+#     pickle.dump({'syn0norm': syn0norm, 'vectors_docs_norm': vectors_docs_norm}, f)
+st_time = time.time()
 
-model2.syn0norm = (model2.wv.vectors / sqrt((model2.wv.vectors ** 2).sum(-1))[..., newaxis]).astype(REAL)
-model3 = model2.syn0norm[w_indices]
-print("word2vec normalized")
+with open("../../NETL-Automatic-Topic-Labelling/model_run/pre_trained_models/doc2vec/vec", "rb") as f:
+    res = pickle.load(f)
+    # Models normalised in unit vector from the indices given above in pickle files.
+    model1.syn0norm = res['syn0norm']
+    model1.docvecs.vectors_docs_norm = res['vectors_docs_norm']
+    print("doc2vec normalized in %s" % (time.time() - st_time))  # 85 seconds
+
+st_time = time.time()
+# with open("../../NETL-Automatic-Topic-Labelling/model_run/pre_trained_models/word2vec/vec", "wb") as f:
+#     syn0norm = (model2.wv.vectors / sqrt((model2.wv.vectors ** 2).sum(-1))[..., newaxis]).astype(REAL)
+#     pickle.dump({'syn0norm': syn0norm}, f)
+
+with open("../../NETL-Automatic-Topic-Labelling/model_run/pre_trained_models/word2vec/vec", "rb") as f:
+    res = pickle.load(f)
+
+    model2.syn0norm = res['syn0norm']
+    model3 = model2.syn0norm[w_indices]
+    print("word2vec normalized in %s" % (time.time() - st_time), end="\n\n")  # 5 seconds
 
 
 # This method is mainly used to remove brackets from the candidate labels.
@@ -184,14 +198,15 @@ def get_labels(topic_num):
     # Get the combined set of both doc2vec labels and word2vec labels
     comb_labels = list(
         set([i[0] for i in resultdoc2vec] + [i[0] for i in resultword2vec]))
+
     newlist_doc2vec = []
     newlist_word2vec = []
-
     print("Topic " + str(topic_num) + " (Progress 6/10): getting the combined set of both doc2vec labels and word2vec labels done")
-    # time consuming number 6
-
+    # todo improve  here
+    start_time = time.time()
     # Get indices from combined labels
-    for elem in comb_labels:
+    print(len(comb_labels))
+    for elem in comb_labels:  # max length 200
         try:
 
             newlist_doc2vec.append(d_indices.index(
@@ -201,6 +216,8 @@ def get_labels(topic_num):
 
         except:
             pass
+    print("seconds normal %s" % (time.time() - start_time))
+
     newlist_doc2vec = list(set(newlist_doc2vec))
     newlist_word2vec = list(set(newlist_word2vec))
 
@@ -233,12 +250,63 @@ def get_labels(topic_num):
     return new_score[:(int(args.num_cand_labels))]
 
 
+def test(input_value):
+    start = input_value['start']
+    step = input_value['step']
+    comb_labels = input_value['comb_labels']
+    newlist_doc2vec = []
+    newlist_word2vec = []
+    for x in range(start, start+step):
+        try:
+
+            newlist_doc2vec.append(d_indices.index(
+                model1.docvecs.doctags[comb_labels[x]].offset))
+            temp = get_word(comb_labels[x])
+            newlist_word2vec.append(w_indices.index(model2.wv.vocab[temp].index))
+
+        except:
+            pass
+    return newlist_doc2vec, newlist_word2vec
+
+
+
 # pool = mp.Pool(processes=2)
 # result = pool.map(get_labels, range(0, len(topic_list)))
 # fix to avoid out of memory
 result = []
 for i in range(0, len(topic_list)):
     result.append(get_labels(i))
+
+# todo improve: modify get_labels until terminate before 6
+# make 6 point as seperate method, and also the code after that
+# call these 3 methods and parallelize second one
+
+# if __name__ == '__main__':
+#
+#     result = []
+#     for i in range(0, len(topic_list)):
+#         comb_labels, avgdoc2vec, avgword2vec = first_part(i)
+#         # second part
+#         start_time = time.time()
+#         len_arr = len(comb_labels)
+#         newlist_doc2vec = []
+#         newlist_word2vec = []
+#         step = ceil(len_arr / 2)
+#         start_arr = []
+#         for x in range(0, len(comb_labels), step)[:-1]:
+#             start_arr.append({'start': x, 'step': step, 'comb_labels': comb_labels})
+#         else:
+#             start_arr.append({'start': len(comb_labels) - (len(comb_labels) % step), 'step': len(comb_labels) % step,
+#                               'comb_labels': comb_labels})
+#         p = Pool(2)
+#         tmp_doc, tmp_word = p.map(test, start_arr)
+#         # join list of list into a single list
+#         for el in tmp_doc:
+#             newlist_doc2vec += el
+#         for el in tmp_word:
+#             newlist_word2vec += el
+#         print(" para version %s" %(time.time()-start_time))
+#         result.append(lastpart(i, newlist_word2vec, newlist_doc2vec, avgdoc2vec, avgword2vec))
 
 # The output file for candidates.
 g = open(args.outputfile_candidates, 'w')

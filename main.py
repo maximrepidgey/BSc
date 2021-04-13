@@ -1,80 +1,31 @@
 from NLP import nlp
 import LDA
 from malletLDA import MalletLDA
+from dataAnalysis import compare_results
 from classicLDA import ClassicLDA
-
+from multiprocessing import Pool
+import time
+from math import ceil
 import sys
 import csv
 import os
 
-import warnings
-# warnings.filterwarnings("ignore", category=DeprecationWarning)
+dir_name = "test/mallet-test/"  # dir_name must be of format <path>/
+queries = [{'query': '50_1', 'query_stop': '50_2', 'docs': 50},
+           {'query': '32_1', 'query_stop': '32_2', 'docs': 50},
+           {'query': '50_7', 'query_stop': '50_8', 'docs': 50},
+           {'query': '59_2', 'query_stop': '59_3', 'docs': 50},
+           {'query': '75_1', 'query_stop': '75_2', 'docs': 50}]
 
-documents = [10, 20, 30, 50, 100]  # possible number of retrieved documents
-dir_name = "test-run/"  # dir_name must be of format <path>/
 
-
-def run(first, last):
-    last += 1
-    query = str(init_query)
-    query += '_{}'
-    for x in range(first, last):
-        for n in documents:
-            print("run LDA for {} documents for query {}".format(n, query.format(x)))
-            if x == 10:
-                query_stop = str(init_query + 1)
-                query_stop += '_1'
-                nlp(query.format(x), query_stop, n)
-            else:
-                nlp(query.format(x), query.format(x + 1), n)
-            sys.exit(0)
-
-            file_name = query.format(x) + "/docs_{}".format(n)
-            full_file_path = dir_name + file_name
-            if not os.path.exists(full_file_path): os.makedirs(full_file_path)
-
-            fig_name = full_file_path + "/score"
-            labels_file_name = full_file_path+"/labels.csv"
-            models_score_path = full_file_path+"/models-score"
-            # todo define a good number of topics
-            if n == 10:
-                topic_num = 16
-                step_num = 1
-            elif n == 20:  # 39 topics
-                topic_num = 40
-                step_num = 2
-            elif n == 30:  # 51 topic
-                topic_num = 52
-                step_num = 2
-            elif n == 50:  # 76 topic
-                topic_num = 77
-                step_num = 3
-            elif n == 100:  # 146 topic
-                topic_num = 147
-                step_num = 5
-            else:
-                topic_num = 50
-                step_num = 1
-
-            test_model = ClassicLDA()
-            test_model.run_multiple_lda_and_print(fig_name, limit=topic_num, start=1, step=step_num, path=models_score_path)
-            output_csv = test_model.prepare_data_for_labelling()
-            # in order to find number of topics for best model compute number of rows in labels.csv
-            # this file goes to Neural embedding
-            with open(labels_file_name, "w") as fb:
-                writer = csv.writer(fb)
-                writer.writerows(output_csv)
-
-            # python get_labels.py -cg -us -s -d <data_file> -ocg <candidates_output> -ouns <unsupervised_output> -osup <supervised_output>
-            os.chdir("NETL-Automatic-Topic-Labelling/model_run")
-            cand_out = "./../../" + full_file_path + "/output_candidates"
-            unsup_out = "./../../" + full_file_path + "/output_unsupervised"
-            sup_out = "./../../" + full_file_path + "/output_supervised"
-            label_file_name = "./../../"+labels_file_name
-            os.system(
-                "python get_labels.py -cg -us -s -d " + label_file_name + " -ocg " + cand_out + " -ouns " + unsup_out + " -osup " + sup_out)
-            os.chdir("./../..")
-            # sys.exit(0)  # stop for test purpose
+def run(input):
+    query = input['query']
+    docs = input['docs']
+    path = dir_name + query + "/docs_{}/".format(docs)
+    data, id2word, data_lemmatized, corpus = nlp(query, input['query_stop'], docs)
+    test_model = MalletLDA(path, data_lemmatized, corpus, id2word)
+    test_model.run_multiple_increasing_topics(21, path, limit=76)
+    compare_results(path, 21)  # generate results.csv
 
 
 def read_data():
@@ -85,7 +36,20 @@ def read_data():
     print(data)
 
 
+# generate results for running increasing number of topics
+def run_full_query(docs):
+    path = dir_name + query + "/docs_{}/".format(docs)
+    data, id2word, data_lemmatized, corpus = nlp(query, query_stop, docs)
+    test_model = MalletLDA(path, data_lemmatized, corpus, id2word)
+    test_model.run_multiple_increasing_topics(21, limit=81)
+    compare_results(path, 21)  # generate results.csv
+
+
+query = "59_5"
+query_stop = "59_6"
+documents = [10, 20, 30, 40, 50]  # possible number of retrieved documents
+
+
 if __name__ == "__main__":
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    init_query = 50
-    run(7, 7)
+    with Pool(len(documents)) as p:
+        p.map(run_full_query, documents)
