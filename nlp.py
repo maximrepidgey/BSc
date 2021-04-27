@@ -1,114 +1,150 @@
-import pickle
-import gensim
-import matplotlib.pyplot as plt
-from gensim.models import CoherenceModel
+import re
 from pprint import pprint
+import pickle
+
+# Gensim
+import gensim
+import gensim.corpora as corpora
+from gensim.utils import simple_preprocess
+from gensim.models import CoherenceModel
+
+from nltk.corpus import stopwords
+import spacy  # spacy for lemmatization
+import sys
+# Enable logging for gensim - optional
+import logging
+import csv
+import warnings
+
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.ERROR)
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-def compute_coherence_values(dictionary, corpus, texts, limit, start=2, step=3):
-    """
-    Compute c_v coherence for various number of topics
+def nlp(query_id, n_documents, albert=False, passages=False):
+    # NLTK Stop words
+    # 5. Prepare Stopwords
+    stop_words = stopwords.words('english')
+    stop_words.extend(['from', 'subject', 're', 'edu', 'use'])
 
-    Parameters:
-    ----------
-    dictionary : Gensim dictionary
-    corpus : Gensim corpus
-    texts : List of input texts
-    limit : Max num of topics
+    def sent_to_words(sentences):
+        for sentence in sentences:
+            yield gensim.utils.simple_preprocess(str(sentence), deacc=True)  # deacc=True removes punctuations
 
-    Returns:
-    -------
-    model_list : List of LDA topic models
-    coherence_values : Coherence values corresponding to the LDA model with respective number of topics
-    """
-    coherence_values = []
-    model_list = []
-    for num_topics in range(start, limit, step):
-        mallet_path = './mallet-2.0.8/bin/mallet'
-        model = gensim.models.wrappers.LdaMallet(mallet_path, corpus=corpus, num_topics=num_topics, id2word=dictionary)
-        model_list.append(model)
-        coherencemodel = CoherenceModel(model=model, texts=texts, dictionary=dictionary, coherence='c_v')
-        coherence_values.append(coherencemodel.get_coherence())
-        print("done with {}".format(num_topics))
+    # Define functions for stopwords, bigrams, trigrams and lemmatization
+    def remove_stopwords(textss):
+        return [[word for word in simple_preprocess(str(doc)) if word not in stop_words] for doc in textss]
 
-    return model_list, coherence_values
+    def make_bigrams(textss):
+        return [bigram_mod[doc] for doc in textss]
+
+    def make_trigrams(textss):
+        return [trigram_mod[bigram_mod[doc]] for doc in textss]
+
+    def lemmatization(textss, allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV']):
+        """https://spacy.io/api/annotation"""
+        texts_out = []
+        for sent in textss:
+            doc = nlp(" ".join(sent))
+            texts_out.append([token.lemma_ for token in doc if token.pos_ in allowed_postags])
+        return texts_out
+
+    # Import Newsgroups Data
+    # df = pd.read_json('https://raw.githubusercontent.com/selva86/datasets/master/newsgroups.json')
+    # df.head()
+
+    if albert:
+        ranked_queries_path = "test-data/cast/albert/albert_manual_qld.tsv"
+        passages_path = "test-data/cast/albert/qld_manual_passages.tsv"
+    else:
+        ranked_queries_path = "test-data/cast/dev_manual_bm25.tsv"
+        passages_path = "test-data/cast/dev_manual_bm25_passages.tsv"
+
+    # import data
+    with open(ranked_queries_path, 'r', newline='\n') as query_passages:
+        rd = csv.reader(query_passages, delimiter=' ', quotechar='"')
+        # first = next(rd)  # query id
+        passages_id = []
+        rank = []
+        for row in rd:
+            if row[0] == query_id:
+                passages_id.append(row[2])
+                rank.append(int(float(row[3])))
+
+    sorted_zipped = sorted(zip(rank, passages_id))
+    sorted_passages = [element for _, element in sorted_zipped]
+    passages_id = sorted_passages[:n_documents]  # top n documents
+    if passages:
+        print(passages_id)
+        return
+
+    # retrieve all relative passages to query id
+    with open(passages_path, 'r', newline='\n') as passages:
+        rd = csv.reader(passages, quotechar='"', delimiter='\t')
+        passages_list = []
+        for row in rd:
+            if row[0] in passages_id:
+                passages_list.append(row[1])
+
+    data = passages_list  # set data, must be a list
+    # data = df.content.values.tolist()
+
+    # 7. Remove emails and newline characters
+    # Remove Emails
+    data = [re.sub('\S*@\S*\s?', '', sent) for sent in data]
+    # Remove new line characters
+    data = [re.sub('\s+', ' ', sent) for sent in data]
+    # Remove distracting single quotes
+    data = [re.sub("\'", "", sent) for sent in data]
+    out_words = open('lda-data/data', 'wb')  # save in order to avoid recomputing
+    pickle.dump(data, out_words)
+    out_words.close()
+
+    # 8. Tokenize words and Clean-up text
+    data_words = list(sent_to_words(data))
+
+    # 9. Build the bigram and trigram models
+    bigram = gensim.models.Phrases(data_words, min_count=5, threshold=100)  # higher threshold fewer phrases.
+    trigram = gensim.models.Phrases(bigram[data_words], threshold=100)
+    # Faster way to get a sentence clubbed as a trigram/bigram
+    bigram_mod = gensim.models.phrases.Phraser(bigram)
+    trigram_mod = gensim.models.phrases.Phraser(trigram)
+
+    # 10. Remove Stopwords, Make Bigrams and Lemmatize
+    # Remove Stop Words
+    data_words_nostops = remove_stopwords(data_words)
+    # Form Bigrams
+    data_words_bigrams = make_bigrams(data_words_nostops)
+    # Initialize spacy 'en_core_web_sm' model, keeping only tagger component (for efficiency)
+    # python3 -m spacy download en_core_web_sm
+    nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner'])
+    print("nlp")
+    # Do lemmatization keeping only noun, adj, vb, adv
+    data_lemmatized = lemmatization(data_words_bigrams,
+                                    allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV'])  # time comsuming here
+    print("lemmatizing")
+    print(data_lemmatized[:1])
+
+    # 11. Create the Dictionary and Corpus needed for Topic Modeling
+    # Create Dictionary
+    id2word = corpora.Dictionary(data_lemmatized)
+    out_words = open('lda-data/words', 'wb')  # save in order to avoid recomputing
+    pickle.dump(id2word, out_words)
+    out_words.close()
+    # Create Corpus
+    texts = data_lemmatized
+    out_lemmatized = open('lda-data/lemmatized', 'wb')
+    pickle.dump(data_lemmatized, out_lemmatized)
+    out_lemmatized.close()
+    # Term Document Frequency
+    corpus = [id2word.doc2bow(text) for text in texts]
+    out_corpus = open('lda-data/corpus', 'wb')
+    pickle.dump(corpus, out_corpus)
+    out_corpus.close()
+    print("11 ended")
+
+    return data, id2word, data_lemmatized, corpus
 
 
-def init_lemmatized():
-    infile = open("lemmatized", 'rb')
-    tmp = pickle.load(infile)
-    infile.close()
-    return tmp
-
-
-def init_corpus():
-    infile = open("corpus", 'rb')
-    tmp = pickle.load(infile)
-    infile.close()
-    return tmp
-
-
-def init_words():
-    infile = open("words", 'rb')
-    tmp = pickle.load(infile)
-    infile.close()
-    return tmp
-
-
-class Mallet:
-    def __init__(self):
-        self.lemmatized = init_lemmatized()
-        self.corpus = init_corpus()
-        self.words = init_words()
-
-    def run_multiple_and_print(self):
-        limit = 36
-        start = 20
-        step = 2
-        model_list, coherence_values = compute_coherence_values(dictionary=self.words, corpus=self.corpus,
-                                                                texts=self.lemmatized, start=start, limit=limit,
-                                                                step=step)
-        out_lemmatized = open('values_mallet', 'wb')
-        pickle.dump({"model": model_list, "values": coherence_values}, out_lemmatized)
-        out_lemmatized.close()
-        # Show graph
-        x = range(start, limit, step)
-        plt.plot(x, coherence_values)
-        plt.xlabel("Num Topics")
-        plt.ylabel("Coherence score")
-        plt.legend("coherence_values", loc='best')
-        plt.show()
-
-    def play_with_values(self):
-        infile = open("lda-model", 'rb')
-        lda_model = pickle.load(infile)
-        infile.close()
-        print("lda topics")
-        pprint(lda_model.print_topics())
-
-        infile = open("coherence-model-lda", 'rb')
-        coherence_model_lda = pickle.load(infile)
-        infile.close()
-
-        # coherence_model_lda = CoherenceModel(model=lda_model, texts=lemmatized, dictionary=id2word, coherence='c_v')
-        coherence_lda = coherence_model_lda.get_coherence()
-
-        mallet_path = './mallet-2.0.8/bin/mallet'
-        infile = open("mallet-model", 'rb')
-        ldamallet = pickle.load(infile)
-        infile.close()
-        # ldamallet = gensim.models.wrappers.LdaMallet(mallet_path, corpus=corpus, num_topics=20, id2word=id2word)
-
-        # Show Topics
-        print("mallet topics")
-        pprint(ldamallet.show_topics(formatted=False))
-        coherence_model_lda_mallet = CoherenceModel(model=ldamallet, texts=self.lemmatized, dictionary=self.words,
-                                                    coherence='c_v')
-        coherence_lda_mallet = coherence_model_lda_mallet.get_coherence()
-        print('\nCoherence Score lda classic: ', coherence_lda)
-        print('\nCoherence Score mallet: ', coherence_lda_mallet)
-
-
-if __name__ == "__main__":
-    test_model = Mallet()
-    test_model.run_multiple_and_print()
+if __name__ == '__main__':
+    nlp("59_3", 40, True, True)
