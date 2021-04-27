@@ -3,9 +3,10 @@ from LDA import get_file
 import csv
 import pickle
 import os
+import sys
 import numpy as np
 import scipy.stats as st
-from statistics import stdev, variance
+from statistics import stdev, variance, median
 
 
 # compare results of multiple LDA model with different number of topics
@@ -17,14 +18,11 @@ def compare_results(path, docs_num, start=1):
         final_list = []
         for i in range(0, el):
             max1 = 0
-
             for j in range(len(list1)):
                 if list1[j] > max1:
                     max1 = list1[j]
-
             list1.remove(max1)
             final_list.append(max1)
-
         return final_list
 
     # 15 columns
@@ -37,7 +35,7 @@ def compare_results(path, docs_num, start=1):
         values = data['values']
         # best
         best_score_pos = values.index(max(values))
-        best_model = data['model'][best_score_pos]
+        best_model = data['model-list'][best_score_pos]
         row.append(best_model)
         # top-3
         copy_values = values[:]
@@ -45,9 +43,9 @@ def compare_results(path, docs_num, start=1):
         second_top = values.index(top_3_values[1])  # second highest
         third_top = values.index(top_3_values[2])  # third highest
         fourth_top = values.index(top_3_values[3])  # fourth highest
-        row.append(data['model'][second_top])
-        row.append(data['model'][third_top])
-        row.append(data['model'][fourth_top])
+        row.append(data['model-list'][second_top])
+        row.append(data['model-list'][third_top])
+        row.append(data['model-list'][fourth_top])
         mean_value = sum(values)/len(values)
         row.append(mean_value)  # mean
         row.append(min(values))  # min
@@ -124,7 +122,7 @@ def analyse_top_best_results(file):
 def analyse_top_best_results_folder(path, file):
     folders = []
     for root in os.walk(path):
-        folders.append(root[0])
+        if "fix" not in root[0]: folders.append(root[0])
     del folders[0]  # remove first element, since it is the root folder
     folders.sort()
     for folder in folders:
@@ -136,7 +134,7 @@ def analyse_top_best_results_folder(path, file):
 def get_results_file_intra_comparison(path, file_name):
     folders = []
     for root in os.walk(path):
-        folders.append(root[0])
+        if "fix" not in root[0]: folders.append(root[0])
     del folders[0]  # remove first element, since it is the root folder
     folders.sort()
     print(folders)
@@ -165,7 +163,7 @@ def get_results_file_intra_comparison(path, file_name):
 def compare_intra_model(path, file_name):
     means, stdevs, variances, folders = get_results_file_intra_comparison(path, file_name)
     for x in range(0, len(means)):
-        # comvert from string to float
+        # convert from string to float
         mean_values_float = list(map(float, means[x]))
         stdev_values_float = list(map(float, stdevs[x]))
         var_values_float = list(map(float, variances[x]))
@@ -186,31 +184,50 @@ def compare_intra_model(path, file_name):
         print("variance %.5f" % variance(var_values_float), end="\n\n")
 
 
+# reads all csv files from provided folder.
+# used for single topic files
+def analyse_multiple_fix_topic(path, file):
+    folders = []
+    for root in os.walk(path):
+        if "fix" in root[0]: folders.append(root[0])
+    # del folders[0]  # remove first element, since it is the root folder
+    folders.sort()
+    print(folders)
+    res=[["doc_name", "best", "top-2", "top-3", "top-4", "mean", "min", "max", "score-2", "score-3", "score-4", "stdev", "variance", "CI-95", "CI-99"]]
+    for f in folders:
+        with open(f+"/"+file, "r") as of:
+            reader = csv.reader(of)
+            next(reader)  # skip first line
+            for row in reader:
+                row[0] = f
+                res.append(row) # only one row per document
+    with open(path+"results.csv", "w") as f:
+        wr = csv.writer(f)
+        wr.writerows(res)
+
+
 # todo create method for inter model comparison, i.e., between queries
 if __name__ == '__main__':
-    query = "75_1"
-    query = "50_7"
-    query = "59_2"
-    query = "32_1"
-    query = "50_5"
-    query = "75_8"
-    query = "75_3"
-    query = "32_6"
-    query = "50_5"
+    # query = "59_5"
+    query = "31_6"
+    # analyse_multiple_fix_topic("test/mallet-test/{}/".format(query), "results.csv")
+    queries = ["32_1", "32_3","32_6", "50_1", "50_5", "50_7", "59_2", "59_5","61_1","61_8","67_2","67_5","67_10", "75_1", "75_3", "75_8"]
 
 
     generate = False
     alphas = [0, 10, 20, 40, 60, 80, 100]
 
-    for a in alphas:
-        compare_results("test/mallet-test/{}/alpha-{}-docs_30/".format(query, a), 21)
-
+    # for a in alphas:
+    #     compare_results("test/mallet-test/{}/alpha-{}-docs_30/".format(query, a), 21)
     if generate:
         compare_results("test/mallet-test/{}/alpha-100-docs_30/".format(query), 11)
         compare_results("test/mallet-test/{}/docs_40/".format(query), 21)
         analyse_top_best_results("test/mallet-test/{}/docs_40/results.csv".format(query))
 
     analyse_top_best_results_folder("test/mallet-test/{}/".format(query), "results.csv")
-    # compare_intra_model("test/mallet-test/{}".format(query), "results.csv")
-    compare_intra_model("test/mallet-test/{}/".format(query), "results.csv")
+    compare_intra_model("test/mallet-test/{}".format(query), "results.csv")
+    analyse_multiple_fix_topic("test/mallet-test/{}/".format(query), "results.csv")
+
+    # for query in queries:
+    #     compare_intra_model("test/mallet-test/{}/".format(query), "results.csv")
 

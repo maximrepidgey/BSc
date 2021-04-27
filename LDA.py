@@ -117,16 +117,24 @@ def get_formatted_topics(model):
 
 #  n-1 should be equal to number of labels.csv files
 def run_neural_embedding(path, n=2):
-
     os.chdir("NETL-Automatic-Topic-Labelling/model_run")
     for x in range(1, n):
-        cand_out = "./../../" + path + "/output_candidates-" + str(x)
-        unsup_out = "./../../" + path + "/output_unsupervised-" + str(x)
-        sup_out = "./../../" + path + "/output_supervised-" + str(x)
-        label_file_name = "./../../" + path + "/labels-" + str(x) + ".csv"
+        cand_out = "./../../" + path + "output_candidates-" + str(x)
+        unsup_out = "./../../" + path + "output_unsupervised-" + str(x)
+        sup_out = "./../../" + path + "output_supervised-" + str(x)
+        label_file_name = "./../../" + path + "labels-" + str(x) + ".csv"
         os.system(
             "python get_labels.py -cg -us -s -d " + label_file_name + " -ocg " + cand_out + " -ouns " + unsup_out + " -osup " + sup_out)
     os.chdir("./../..")
+
+
+def prepare_best_data_for_labelling(path):
+    mallet_values = get_file(path)
+    best_score_pos = mallet_values['values'].index(max(mallet_values['values']))
+    best_model = mallet_values['model'][best_score_pos]
+    # pprint(best_model.show_topics(formatted=False))
+    output_csv = normalize_output_topics_csv(best_model)
+    return output_csv
 
 
 class LDA:
@@ -156,22 +164,16 @@ class LDA:
     def create_model(self, topics=20, workers=1):
         pass
 
-    def load_multiple_lda(self):
-        return get_file("lda-data/values_" + self.get_name())
-
     def run_multiple_lda_and_print(self, name=None, topics=20, limit=10, start=1, step=1, fix=0):
         if fix == 0:
             model_list, coherence_values = self.compute_coherence_values_fix(limit, topics)
+            fix = 1  # in order to avoid file named data-0, which creates error in future methods
         else:
             model_list, coherence_values = self.compute_coherence_values_increasing(limit, start, step)
-        # save values
-        out_lemmatized = open('lda-data/values_' + self.get_name(), 'wb')
-        pickle.dump({"model": model_list, "values": coherence_values}, out_lemmatized)
-        out_lemmatized.close()
         # save coherence score for each model
         x = range(start, limit, step)
         with open(self.path+"data-{}".format(fix), 'wb') as f:
-            pickle.dump({'model': list(x), 'values': coherence_values}, f)
+            pickle.dump({'model': model_list, 'model-list': list(x), 'values': coherence_values}, f)
 
         plot_multiple_models(start, limit, step, coherence_values, name=name)
 
@@ -201,12 +203,12 @@ class LDA:
 
         return models, scores
 
-    def run_multiple_fix_topic(self, path, topics, limit=20):
-        if not os.path.exists(path): os.makedirs(path)
+    def run_multiple_fix_topic(self, topics, limit=20):
+        if not os.path.exists(self.path): os.makedirs(self.path)
 
-        self.run_multiple_lda_and_print(path + "img-1", limit=limit, topics=topics)
-        output_csv = self.prepare_data_for_labelling()
-        with open(path + "labels-1.csv", "w") as fb:
+        self.run_multiple_lda_and_print(self.path + "img-1", limit=limit, topics=topics)
+        output_csv = prepare_best_data_for_labelling(self.path + "data-1")
+        with open(self.path + "labels-1.csv", "w") as fb:
             writer = csv.writer(fb)
             writer.writerows(output_csv)
 
@@ -215,7 +217,7 @@ class LDA:
 
         for x in range(1, n):
             self.run_multiple_lda_and_print(self.path + "img-" + str(x), fix=x, limit=limit, start=start, step=step)
-            output_csv = self.prepare_data_for_labelling()
+            output_csv = prepare_best_data_for_labelling(self.path+"data-"+str(x))
             # in order to find number of topics for best model compute number of rows in labels.csv
             # this file goes to Neural embedding
             with open(self.path + "labels-" + str(x) + ".csv", "w") as fb:
@@ -232,14 +234,6 @@ class LDA:
     def compute_coherence(self, model, workers=1, topics=None):
         return CoherenceModel(model, topics=topics, texts=self.lemmatized, dictionary=self.words, coherence='c_v',
                               topn=10, processes=workers)
-
-    def prepare_data_for_labelling(self):
-        mallet_values = self.load_multiple_lda()
-        best_score_pos = mallet_values['values'].index(max(mallet_values['values']))
-        best_model = mallet_values['model'][best_score_pos]
-        # pprint(best_model.show_topics(formatted=False))
-        output_csv = normalize_output_topics_csv(best_model)
-        return output_csv
 
     def format_topics_sentences(self):
         # Init output
@@ -290,9 +284,14 @@ class LDA:
 
 
 if __name__ == "__main__":
-    # lda.df_topic_sent_keywords_print(1)
-    run_neural_embedding("test/mallet-test/75_1/alpha-0-docs_30/", 6)
-    run_neural_embedding("test/mallet-test/75_1/alpha-10-docs_30/", 6)
-    run_neural_embedding("test/mallet-test/75_1/alpha-100-docs_30/", 6)
-    run_neural_embedding("test/mallet-test/75_1/docs_30/", 6)
-    # run_neural_embedding("test/rapid/32_1/docs_20")
+    etas = [0.0001, 0.001, 0.01, 0.1, 1, 10]
+    optimizations = [1, 10, 20, 50, 100, 200]
+    # for x in range(1, 9):
+    #     run_neural_embedding("test/mallet-test/59_3/fix_{}-docs_10/".format(x), 2)
+    # for x in range(1, 9):
+    #     for opt in optimizations:
+    #         run_neural_embedding("test/fix/mallet/31_6/fix_{}-inter_{}-docs_40/".format(x, opt), 2)
+    alphas = [0, 1, 10, 20, 40, 60, 80, 100]
+    for x in range(1, 7):
+        for a in alphas:
+            run_neural_embedding("test/fix/mallet/59_3/fix_{}-alpha_{}-docs_30/".format(x, a), 2)

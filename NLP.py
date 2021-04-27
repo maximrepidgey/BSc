@@ -10,7 +10,7 @@ from gensim.models import CoherenceModel
 
 from nltk.corpus import stopwords
 import spacy  # spacy for lemmatization
-
+import sys
 # Enable logging for gensim - optional
 import logging
 import csv
@@ -21,9 +21,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-def nlp(query_id, query_id_stop, n_documents):
-    return_list = []
-    n_documents -= 1
+def nlp(query_id, n_documents, albert=False, passages=False):
     # NLTK Stop words
     # 5. Prepare Stopwords
     stop_words = stopwords.words('english')
@@ -55,23 +53,33 @@ def nlp(query_id, query_id_stop, n_documents):
     # df = pd.read_json('https://raw.githubusercontent.com/selva86/datasets/master/newsgroups.json')
     # df.head()
 
+    if albert:
+        ranked_queries_path = "test-data/cast/albert/albert_manual_qld.tsv"
+        passages_path = "test-data/cast/albert/qld_manual_passages.tsv"
+    else:
+        ranked_queries_path = "test-data/cast/dev_manual_bm25.tsv"
+        passages_path = "test-data/cast/dev_manual_bm25_passages.tsv"
+
     # import data
-    with open('test-data/cast/dev_manual_bm25.tsv', 'r', newline='\n') as query_passages:
+    with open(ranked_queries_path, 'r', newline='\n') as query_passages:
         rd = csv.reader(query_passages, delimiter=' ', quotechar='"')
         # first = next(rd)  # query id
         passages_id = []
         rank = []
         for row in rd:
-            if row[0] == query_id_stop:
-                break
             if row[0] == query_id:
                 passages_id.append(row[2])
-                rank.append(row[3])
-                if row[3] == str(n_documents):
-                    break
+                rank.append(int(float(row[3])))
+
+    sorted_zipped = sorted(zip(rank, passages_id))
+    sorted_passages = [element for _, element in sorted_zipped]
+    passages_id = sorted_passages[:n_documents]  # top n documents
+    if passages:
+        print(passages_id)
+        return
 
     # retrieve all relative passages to query id
-    with open('test-data/cast/dev_manual_bm25_passages.tsv', 'r', newline='\n') as passages:
+    with open(passages_path, 'r', newline='\n') as passages:
         rd = csv.reader(passages, quotechar='"', delimiter='\t')
         passages_list = []
         for row in rd:
@@ -136,18 +144,7 @@ def nlp(query_id, query_id_stop, n_documents):
     print("11 ended")
 
     return data, id2word, data_lemmatized, corpus
-    # 12. Build LDA model
-    # lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
-    #                                             id2word=id2word,
-    #                                             num_topics=20,
-    #                                             random_state=100,
-    #                                             update_every=1,
-    #                                             chunksize=100,
-    #                                             passes=10,
-    #                                             alpha='auto',
-    #                                             per_word_topics=True)
-    # print("model built")
-    # # save model to file
-    # out_lda_filename = open('lda-model', 'wb')
-    # pickle.dump(lda_model, out_lda_filename)
-    # out_lda_filename.close()
+
+
+if __name__ == '__main__':
+    nlp("59_3", 40, True, True)

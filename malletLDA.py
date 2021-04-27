@@ -23,6 +23,7 @@ class MalletLDA(LDA):
         self.name = "mallet"
         self.__alpha = 50
         self.__threshold = 0.0
+        self.__optimize_interval = 0
 
     def set_alpha(self, value):
         self.__alpha = value
@@ -30,61 +31,20 @@ class MalletLDA(LDA):
     def set_threshold(self, value):
         self.__threshold = value
 
+    def set_interval(self, value):
+        self.__optimize_interval = value
+
     def create_model(self, topics=20, workers=1):
         return LdaMallet(mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.words,
-                         workers=workers, alpha=self.__alpha, topic_threshold=self.__threshold)
+                         workers=workers, alpha=self.__alpha, topic_threshold=self.__threshold, optimize_interval=self.__optimize_interval)
 
     def load_lda_model(self):
         return get_file("lda-data/mallet-model")
 
 
-# run mallet model with increasing number of topics, from 1 to fix limit
-# runs for different number of retrieved documents
-def increasing_topics(docs):
-    path = "test/mallet-test/"+query+"/docs_{}/".format(docs)
-    mallet = MalletLDA(path)
-    mallet.run_multiple_increasing_topics(21, limit=58)
-    compare_results(path, 21)  # generate results.csv
-
-
-def increasing_topics_set_alpha(a):
-    path = "test/mallet-test/"+query+"/alpha-{}-docs_{}/".format(a, docs_num)
-    mallet = MalletLDA(path)
-    mallet.set_alpha(a)
-    mallet.run_multiple_increasing_topics(21, limit=58)
-    compare_results(path, 21)  # generate results.csv
-
-
-# runs multiple mallet model for fix number of topics
-# could run for different number of retrieved documents
-def fix_topics(docs):
-    path = "test/same/"+query+"/docs_{}/".format(docs)
-    mallet = MalletLDA(path)
-    mallet.run_multiple_fix_topic(path, 15, limit=60)
-    compare_results(path, 2)  # generate results.csv
-
-
-# run multiple mallet model for fix number of topics and increase alpha
-# number of retrieved documents is fixed
-def fix_topics_set_alpha(a):
-    path = "test/same/"+query+"/alpha-{}-docs_{}/".format(a, docs_num)
-    mallet = MalletLDA(path)
-    mallet.set_alpha(a)
-    mallet.run_multiple_fix_topic(path, 15, limit=60)
-    compare_results(path, 2)  # generate results.csv
-
-
-def var_topic_threshold(th):
-    path = "test/mallet-test/"+query+"/threshold-{}-docs_{}/".format(th, docs_num)
-    mallet = MalletLDA(path)
-    mallet.set_threshold(th)
-    mallet.run_multiple_increasing_topics(21, path, limit=76)
-    compare_results(path, 21)  # generate results.csv
-
-
-query = "59_5"
-query_stop = "59_6"
-docs_num = 30
+query = "61_1"
+docs_num = 10
+path = "test/rapid/" + query + "/docs_{}/".format(docs_num)
 
 if __name__ == '__main__':
     # n = 20
@@ -95,9 +55,11 @@ if __name__ == '__main__':
     tmp = 0
     queries = ["32_1", "50_1", "59_2", "75_1"]
     stops = ["32_2", "50_2", "59_3", "75_2"]
-    nlp(query, query_stop, docs_num)
-    with Pool(len(alphas)) as p:
-        p.map(increasing_topics_set_alpha, alphas)
+    nlp(query, docs_num, True)
+    mallet = MalletLDA(path)
+    mallet.run_multiple_increasing_topics(6, limit=14)
+    # with Pool(len(alphas)) as p:
+    #     p.map(simulation.increasing_topics_set_alpha, alphas)
 
 
     sys.exit(0)
