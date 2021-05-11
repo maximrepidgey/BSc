@@ -283,7 +283,8 @@ class LDA:
 
     def df_topic_sent_keywords_print(self, min_relevance=3):
         df_topic_sents_keywords = self.format_topics_sentences()
-
+        # with open(self.path + "dist.csv", "r") as f:
+        #     df_topic_sents_keywords = pd.read_csv(f)
         # could happen that no document belongs to certain topic, this provoke one parameter missing. This causes no
         # problem, just an empty space in that case will mean a 0
         grouped_dominant_topic = df_topic_sents_keywords.groupby('Dominant_Topic')

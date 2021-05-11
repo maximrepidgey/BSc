@@ -195,19 +195,81 @@ def analyse_multiple_fix_topic(path, file):
     print(folders)
     res=[["doc_name", "best", "top-2", "top-3", "top-4", "mean", "min", "max", "score-2", "score-3", "score-4", "stdev", "variance", "CI-95", "CI-99"]]
     for f in folders:
-        with open(f+"/"+file, "r") as of:
+        with open(f + "/" + file, "r") as of:
             reader = csv.reader(of)
             next(reader)  # skip first line
             for row in reader:
                 row[0] = f
-                res.append(row) # only one row per document
-    with open(path+"results.csv", "w") as f:
+                res.append(row)  # only one row per document
+    with open(path + "results.csv", "w") as f:
         wr = csv.writer(f)
         wr.writerows(res)
 
 
+def compare_dist(n_docs):
+    path = "test/dist/"
+    mallet_path = path + "mallet/"
+    classic_path = path + "classic/"
+    save_path = path + "comparison/"
+    # avoid .DS_Store
+    dir_list_mallet = os.listdir(mallet_path)
+    dir_list_mallet = sorted([el for el in dir_list_mallet if el[0] != "."])
+    dir_list_classic = os.listdir(classic_path)
+    dir_list_classic = sorted([el for el in dir_list_classic if el[0] != "."])
+
+    assert dir_list_mallet == dir_list_classic
+
+    def collect_data(path, queries):
+        dict = {}
+        for query in queries:
+            list_dir = os.listdir(path + query)
+            list_dir = sorted([el for el in list_dir if el[0] != "."])
+            for sub in list_dir:
+                # todo get min_rel and docs_num
+                with open(path + query + "/" + sub + "/results-docs_{}.csv".format(n_docs), "r") as f:
+                    reader = csv.reader(f)
+                    last_row = None
+                    for row in reader:
+                        last_row = row
+                    # read last row and collect data
+                    dict[path + query + "/" + sub] = last_row
+        return dict
+
+    dict_classic = collect_data(classic_path, dir_list_classic)
+    dict_mallet = collect_data(mallet_path, dir_list_mallet)
+    dict = {**dict_classic, **dict_mallet}  # merge to dicts
+    # classic string is forward
+    header_row = ["topic{}".format(t) for t in range(8)]
+    header_row.insert(0, "lda")
+    header_row.append("mean")
+    header_row.append("n_docs")
+    for t in dict:
+        cdata = dict[t]
+        cdata.insert(0, "classic")
+        cdata.append(n_docs)
+        classic_string = t.split("/")
+        # consider only classic data to avoid repetition
+        if classic_string[2] == "mallet":
+            continue
+        else:
+            classic_string[2] = "mallet"
+        mallet_string = "/".join(classic_string)
+        print(mallet_string)
+        mdata = dict[mallet_string]
+        mdata.insert(0, "mallet")
+        mdata.append(n_docs)
+
+        with open(path + "comparison/" + classic_string[-2] + "_" + classic_string[-1] + ".csv", "w") as f:
+            wr = csv.writer(f)
+            wr.writerow(header_row)
+            wr.writerow(cdata)
+            wr.writerow(mdata)
+
+
 # todo create method for inter model comparison, i.e., between queries
 if __name__ == '__main__':
+    compare_dist(30)
+    sys.exit(0)
     # query = "59_5"
     query = "31_6"
     # analyse_multiple_fix_topic("test/mallet-test/{}/".format(query), "results.csv")

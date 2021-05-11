@@ -120,13 +120,13 @@ def fix_topics_eta(topic):
 
 
 def query_distribution(query):
-    data, id2word, data_lemmatized, corpus, passages = nlp(query, docs_num, True)
+    data, id2word, data_lemmatized, corpus, passages = nlp(query, docs_num)
     final_data = []
     q_num = query[0:2]
     q_part = query[3:]
     for t in topics:
-        path = "test/dist/mallet/" + q_num + "/" + q_part + "/fix_{}-docs_{}/".format(t, docs_num)
-        classic = MalletLDA(path, data_lemmatized, corpus, id2word, passages)
+        path = "test/dist/classic/" + q_num + "/" + q_part + "/fix_{}-docs_{}/".format(t, docs_num)
+        classic = ClassicLDA(path, data_lemmatized, corpus, id2word, passages)
         classic.run_multiple_fix_topic(t, 21)
         # find the best model
         values = get_file(path + "data-1")
@@ -142,7 +142,26 @@ def query_distribution(query):
     max_per_topic.append(mean(max_per_topic))  # average per this query
 
     final_data.append(max_per_topic)
-    with open("test/dist/mallet/" + q_num + "/" + q_part + "/results-docs_{}.csv".format(docs_num), "w") as f:
+    with open("test/dist/classic/" + q_num + "/" + q_part + "/results-docs_{}.csv".format(docs_num), "w") as f:
+        writer = csv.writer(f)
+        writer.writerows(final_data)
+
+
+def read_missing(query):
+    q_num = query[0:2]
+    q_part = query[3:]
+    final_data = []
+    for t in topics:
+        path = "test/dist/classic/" + q_num + "/" + q_part + "/fix_{}-docs_{}/".format(t, docs_num)
+        classic = ClassicLDA(path)
+        final_data.append(classic.df_topic_sent_keywords_print())
+
+    # create a list with max value for each topic number
+    max_per_topic = [max(row[2:]) for row in final_data]
+    max_per_topic.append(mean(max_per_topic))  # average per this query
+
+    final_data.append(max_per_topic)
+    with open("test/dist/classic/" + q_num + "/" + q_part + "/results-docs_{}.csv".format(docs_num), "w") as f:
         writer = csv.writer(f)
         writer.writerows(final_data)
 
@@ -163,7 +182,8 @@ etas = [0.0001, 0.001, 0.01, 0.1, 1, 10]
 
 optimizations = [1, 10, 20, 50, 100, 200]
 fast_query = ["75_1", "75_3", "75_8", "50_7", "50_5"]
-query_albert = ["37_{}".format(i) for i in range(1, 9)]
+query_albert = ["79_{}".format(i) for i in range(1, 9)]
+dev_albert = ["50_{}".format(i) for i in range(1, 11)]
 
 
 def rename(path):
@@ -173,11 +193,12 @@ def rename(path):
             os.rename(path + d, path + d[3:])
 
 
+# not 75_7 query
 if __name__ == "__main__":
-    # query_distribution("32_7")
-    # sys.exit(0)
+    read_missing("31_1")
+    sys.exit(0)
     # nlp(query, docs_num, True)
-    print(query_albert)
-    parameters = query_albert
-    with Pool(4) as p:
+    parameters = dev_albert
+    print(parameters)
+    with Pool(5) as p:
         p.map(query_distribution, parameters)
