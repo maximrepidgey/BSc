@@ -211,8 +211,8 @@ if __name__ == '__main__':
     # query = "59_5"
     query = "31_6"
     # analyse_multiple_fix_topic("test/mallet-test/{}/".format(query), "results.csv")
-    queries = ["32_1", "32_3","32_6", "50_1", "50_5", "50_7", "59_2", "59_5","61_1","61_8","67_2","67_5","67_10", "75_1", "75_3", "75_8"]
-
+    queries = ["32_1", "32_3", "32_6", "50_1", "50_5", "50_7", "59_2", "59_5", "61_1", "61_8", "67_2", "67_5", "67_10",
+               "75_1", "75_3", "75_8"]
 
     generate = False
     alphas = [0, 10, 20, 40, 60, 80, 100]
@@ -226,7 +226,7 @@ if __name__ == '__main__':
 
     analyse_top_best_results_folder("test/mallet-test/{}/".format(query), "results.csv")
     compare_intra_model("test/mallet-test/{}".format(query), "results.csv")
-    analyse_multiple_fix_topic("test/mallet-test/{}/".format(query), "results.csv")
+    # analyse_multiple_fix_topic("test/mallet-test/{}/".format(query), "results.csv")
 
     # for query in queries:
     #     compare_intra_model("test/mallet-test/{}/".format(query), "results.csv")

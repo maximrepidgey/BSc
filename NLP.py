@@ -63,9 +63,9 @@ def nlp(query_id, n_documents, albert=False, passages=False):
     # import data
     with open(ranked_queries_path, 'r', newline='\n') as query_passages:
         rd = csv.reader(query_passages, delimiter=' ', quotechar='"')
-        # first = next(rd)  # query id
         passages_id = []
         rank = []
+        # collect all documents corresponding to that query
         for row in rd:
             if row[0] == query_id:
                 passages_id.append(row[2])
@@ -74,9 +74,44 @@ def nlp(query_id, n_documents, albert=False, passages=False):
     sorted_zipped = sorted(zip(rank, passages_id))
     sorted_passages = [element for _, element in sorted_zipped]
     passages_id = sorted_passages[:n_documents]  # top n documents
+
+    passages_list = []
+    queries_seen = []
+    with open("test-data/ivan-data.tsv", "r", newline='\n') as f:
+        reader = csv.reader(f, delimiter=' ', quotechar='"')
+
+        for row in reader:
+            if row[0] == query_id and row[2] in passages_id:
+                queries_seen.append(row[2])
+                passages_list.append((row[2], row[3]))
+                # passages_list.append({'id': row[2], 'relevance': row[3]})
+
+    queries_unseen = list(set(passages_id) - set(queries_seen))
+    for q in queries_unseen:
+        passages_list.append((q, 0))
+        # passages_list.append({'id': q, 'relevance': 0})
+
+    with open(ranked_queries_path, 'r', newline='\n') as query_passages:
+        rd = csv.reader(query_passages, delimiter=' ', quotechar='"')
+        # sort basing on machine score
+        rank = []
+        items = []
+        for row in rd:
+            if row[0] == query_id:
+                for item in passages_list:
+                    if row[2] == item[0]:
+                        rank.append(int(float(row[3])))
+                        items.append(item)
+
+    sorted_zipped = sorted(zip(rank, items))
+    passages_list = [element for _, element in sorted_zipped]
+
+    with open("lda-data/passages", "wb") as f:
+        pickle.dump(passages_list, f)
+
     if passages:
         print(passages_id)
-        return
+        # return
 
     # retrieve all relative passages to query id
     with open(passages_path, 'r', newline='\n') as passages:
@@ -143,8 +178,8 @@ def nlp(query_id, n_documents, albert=False, passages=False):
     out_corpus.close()
     print("11 ended")
 
-    return data, id2word, data_lemmatized, corpus
+    return data, id2word, data_lemmatized, corpus, passages_list
 
 
 if __name__ == '__main__':
-    nlp("59_3", 40, True, True)
+    nlp("31_1", 10, passages=True, albert=True)

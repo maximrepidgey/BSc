@@ -1,6 +1,7 @@
 import pickle
 from gensim.models import CoherenceModel
-
+from NLP import nlp
+from statistics import mean
 from pprint import pprint
 import pandas as pd
 import os
@@ -12,6 +13,7 @@ import pyLDAvis
 import pyLDAvis.gensim  # don't skip this
 import matplotlib.pyplot as plt
 import csv
+from gensim.models.wrappers.ldamallet import malletmodel2ldamodel
 
 os.environ.update({'MALLET_HOME': r'./mallet-2.0.8/bin/mallet'})
 pd.set_option('display.max_columns', None)
@@ -39,6 +41,10 @@ def load_mallet_model():
 
 def load_topics():
     return get_file("lda-data/topic-document")
+
+
+def init_passages():
+    return get_file("lda-data/passages")
 
 
 def get_file(filename):
@@ -143,10 +149,12 @@ class LDA:
             self.lemmatized = args[0]
             self.corpus = args[1]
             self.words = args[2]
+            self.passages = args[3]
         else:
             self.lemmatized = init_lemmatized()
             self.corpus = init_corpus()
             self.words = init_words()
+            self.passages = init_passages()
         self.name = ""
         self.path = path
 
@@ -172,7 +180,7 @@ class LDA:
             model_list, coherence_values = self.compute_coherence_values_increasing(limit, start, step)
         # save coherence score for each model
         x = range(start, limit, step)
-        with open(self.path+"data-{}".format(fix), 'wb') as f:
+        with open(self.path + "data-{}".format(fix), 'wb') as f:
             pickle.dump({'model': model_list, 'model-list': list(x), 'values': coherence_values}, f)
 
         plot_multiple_models(start, limit, step, coherence_values, name=name)
@@ -217,7 +225,7 @@ class LDA:
 
         for x in range(1, n):
             self.run_multiple_lda_and_print(self.path + "img-" + str(x), fix=x, limit=limit, start=start, step=step)
-            output_csv = prepare_best_data_for_labelling(self.path+"data-"+str(x))
+            output_csv = prepare_best_data_for_labelling(self.path + "data-" + str(x))
             # in order to find number of topics for best model compute number of rows in labels.csv
             # this file goes to Neural embedding
             with open(self.path + "labels-" + str(x) + ".csv", "w") as fb:
@@ -239,43 +247,58 @@ class LDA:
         # Init output
         sent_topics_df = pd.DataFrame()
 
+        # get the best lda model
+        # with open("lda-data/mallet", "rb") as f:
+        with open(self.path + "best", "rb") as f:
+            ldamodel = pickle.load(f)
+
         # Get main topic in each document
-        ldamodel = self.load_lda_model()
-        corpus = self.corpus
+        corpus = self.corpus  # len is a number of retrieved documents
+        passages = self.passages
+        # transform mallet model to classic
+        if self.name == "mallet": ldamodel = malletmodel2ldamodel(ldamodel)
         for i, row in enumerate(ldamodel[corpus]):
-            row = sorted(row[0], key=lambda x: (x[1]), reverse=True)
-            # row = sorted(row, key=lambda x: (x[1]), reverse=True) # old line
+            # row = sorted(row[0], key=lambda x: (x[1]), reverse=True)
+            row = sorted(row, key=lambda x: (x[1]), reverse=True)  # old line
             # Get the Dominant topic, Perc Contribution and Keywords for each document
             for j, (topic_num, prop_topic) in enumerate(row):
                 if j == 0:  # => dominant topic
                     wp = ldamodel.show_topic(topic_num)
                     topic_keywords = ", ".join([word for word, prop in wp])
                     sent_topics_df = sent_topics_df.append(
-                        pd.Series([int(topic_num), round(prop_topic, 4), topic_keywords]),
+                        pd.Series([int(topic_num), round(prop_topic, 4), passages[i][0], passages[i][1]]),
                         ignore_index=True)
                 else:
                     break
-        sent_topics_df.columns = ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords']
+        sent_topics_df.columns = ['Dominant_Topic', 'Perc_Contribution', 'Passage_ID', 'Relevance']
 
         # Add original text to the end of the output
         texts = self.words
         contents = pd.Series(texts)
-        sent_topics_df = pd.concat([sent_topics_df, contents], axis=1)
-        return sent_topics_df
+        # sent_topics_df = pd.concat([sent_topics_df, contents], axis=1)
+        df_dominant_topic = sent_topics_df.reset_index()
+        df_dominant_topic.columns = ['Document_No', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Passage_ID', 'Relevance']
+        df_dominant_topic.to_csv(self.path + "dist.csv")
+        return df_dominant_topic
 
-    def df_topic_sent_keywords_print(self, new=0):
-        if new == 1:
-            df_topic_sents_keywords = self.format_topics_sentences()
-        else:
-            topics = open('lda-data/topic-document', 'rb')
-            df_topic_sents_keywords = pickle.load(topics)
-            topics.close()
+    def df_topic_sent_keywords_print(self, min_relevance=3):
+        df_topic_sents_keywords = self.format_topics_sentences()
 
-        # Format
-        df_dominant_topic = df_topic_sents_keywords.reset_index()
-        df_dominant_topic.columns = ['Document_No', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords', 'Text']
-        print("print topics")
-        print(df_dominant_topic.head(10))
+        # could happen that no document belongs to certain topic, this provoke one parameter missing. This causes no
+        # problem, just an empty space in that case will mean a 0
+        grouped_dominant_topic = df_topic_sents_keywords.groupby('Dominant_Topic')
+
+        n_docs = df_topic_sents_keywords.shape[0]
+        # tmp.apply(print)
+        print("Consider the relevance score >= " + str(min_relevance))
+        # first is number of docs, second is min_relevance, after the topics relevance score
+        values = [n_docs, min_relevance]
+        for topic, group in grouped_dominant_topic:
+            tmp = [el for el in group['Relevance'] if int(el) >= min_relevance]
+            print("Relevance of topic {} is {}/{}".format(topic, len(tmp), n_docs))
+            values.append(len(tmp))
+
+        return values
 
     def visualize(self, model):
         pyLDAvis.enable_notebook()
@@ -286,12 +309,13 @@ class LDA:
 if __name__ == "__main__":
     etas = [0.0001, 0.001, 0.01, 0.1, 1, 10]
     optimizations = [1, 10, 20, 50, 100, 200]
-    # for x in range(1, 9):
-    #     run_neural_embedding("test/mallet-test/59_3/fix_{}-docs_10/".format(x), 2)
+    alphas = [0, 1, 10, 20, 40, 60, 80, 100]
+
+    for i in range(1, 9):
+        run_neural_embedding("test/mallet-test/61_1/fix_{}-docs_30/".format(i), 2)
     # for x in range(1, 9):
     #     for opt in optimizations:
     #         run_neural_embedding("test/fix/mallet/31_6/fix_{}-inter_{}-docs_40/".format(x, opt), 2)
-    alphas = [0, 1, 10, 20, 40, 60, 80, 100]
-    for x in range(1, 7):
-        for a in alphas:
-            run_neural_embedding("test/fix/mallet/59_3/fix_{}-alpha_{}-docs_30/".format(x, a), 2)
+    # for x in range(1, 7):
+    #     for a in alphas:
+    #         run_neural_embedding("test/fix/mallet/68_11/fix_{}-alpha_{}-docs_40/".format(x, a), 2)

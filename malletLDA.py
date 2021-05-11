@@ -47,6 +47,24 @@ docs_num = 10
 path = "test/rapid/" + query + "/docs_{}/".format(docs_num)
 
 if __name__ == '__main__':
+
+    nlp("59_3", 30, albert=True)
+    mallet = MalletLDA("test/mallet-test/")
+    model = mallet.create_model_and_save(3)
+    tmp = model[mallet.corpus]
+    for i, row in enumerate(tmp):
+        print(i, row)  # i is doc_num and row is a list of tuples (topic_num, distribution) ...
+        row = sorted(row, key=lambda x: (x[1]), reverse=True)
+        print(row)
+        for j, (topic_num, prop_topic) in enumerate(row):
+            print(j)
+            print(topic_num)
+            print(prop_topic)
+        break
+
+    mallet.df_topic_sent_keywords_print()
+    sys.exit(0)
+
     # n = 20
     orig_num_topics_start = 3
     orig_num_topics_end = 7
