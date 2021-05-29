@@ -1,12 +1,13 @@
 from collections import Counter
-from LDA import get_file
+import pandas as pd
 import csv
 import pickle
 import os
 import sys
 import numpy as np
 import scipy.stats as st
-from statistics import stdev, variance, median
+import matplotlib.pyplot as plt
+from statistics import stdev, variance, median, mean
 
 
 # compare results of multiple LDA model with different number of topics
@@ -134,8 +135,10 @@ def analyse_top_best_results_folder(path, file):
 def get_results_file_intra_comparison(path, file_name):
     folders = []
     for root in os.walk(path):
-        if "fix" not in root[0]: folders.append(root[0])
-    del folders[0]  # remove first element, since it is the root folder
+        # only alpha files
+        # todo change here for different files to be considered
+        if "alpha" not in root[0] and "fix" not in root[0] and "test-" not in root[0]: folders.append(root[0])
+    if len(folders) >= 1: del folders[0]  # remove first element, since it is the root folder
     folders.sort()
     print(folders)
     means = []
@@ -162,7 +165,7 @@ def get_results_file_intra_comparison(path, file_name):
 # computes the difference between models for various number of topics
 def compare_intra_model(path, file_name):
     means, stdevs, variances, folders = get_results_file_intra_comparison(path, file_name)
-    for x in range(0, len(means)):
+    for x in range(len(means)):
         # convert from string to float
         mean_values_float = list(map(float, means[x]))
         stdev_values_float = list(map(float, stdevs[x]))
@@ -184,16 +187,105 @@ def compare_intra_model(path, file_name):
         print("variance %.5f" % variance(var_values_float), end="\n\n")
 
 
+def compare_between_queries_doc_number(path):
+    """
+    Plot the mean values collected from each query for each docs number.
+
+    :param path: the path to the folder containing queries
+    :return:
+    """
+    num_results = 0
+    results = {}
+    # must be only from docs_10 to docs_50
+    for i in range(5):  # initialize dict
+        results["mean_" + str(i)] = []
+        results["stdev_" + str(i)] = []
+        results["var_" + str(i)] = []
+    for query in os.listdir(path):
+        print(query)
+        if query == "61_5": continue
+        if query[0] != "." and query[0] != "d":
+            means, stdevs, variances, folders = get_results_file_intra_comparison(path + query, "results.csv")
+            if len(means) == 0: continue  # avoid folder without docs_n folders
+            num_results += 1
+            for i in range(len(means)):
+                mean_values_float = list(map(float, means[i]))
+                stdev_values_float = list(map(float, stdevs[i]))
+                var_values_float = list(map(float, variances[i]))
+                results["mean_" + str(i)].append(sum(mean_values_float) / len(mean_values_float))
+                results["stdev_" + str(i)].append(sum(stdev_values_float) / len(stdev_values_float))
+                results["var_" + str(i)].append(sum(var_values_float) / len(var_values_float))
+
+    data = [results["mean_0"], results["mean_1"], results["mean_2"], results["mean_3"], results["mean_4"]]
+    fig7, ax7 = plt.subplots()
+    # ax7.set_title('Compare the mean score received for each query for every type of docs')
+    ax7.boxplot(data, labels=["10", "20", "30", "40", "50"])
+
+    plt.xlabel("documents retrieved")
+    plt.ylabel("mean coherence score")
+    plt.savefig("docs-data.png")
+    plt.show()
+    return results
+
+
+def compare_between_queries_alpha(path):
+    """
+    Plot the mean values collected from each query for each docs number.
+
+    :param path: the path to the folder containing queries
+    :return:
+    """
+    num_results = 0
+    results = {}
+    # must be only from docs_10 to docs_50
+    for i in range(8):  # initialize dict
+        results["mean_" + str(i)] = []
+        results["stdev_" + str(i)] = []
+        results["var_" + str(i)] = []
+    for query in os.listdir(path):
+        print(query)
+        if query == "61_5": continue
+        if query[0] != "." and query[0] != "d":
+            means, stdevs, variances, folders = get_results_file_intra_comparison(path + query, "results.csv")
+            if len(means) == 0: continue  # avoid folder without docs_n folders
+            num_results += 1
+            for i in range(len(means)):
+                mean_values_float = list(map(float, means[i]))
+                stdev_values_float = list(map(float, stdevs[i]))
+                var_values_float = list(map(float, variances[i]))
+                results["mean_" + str(i)].append(sum(mean_values_float) / len(mean_values_float))
+                results["stdev_" + str(i)].append(sum(stdev_values_float) / len(stdev_values_float))
+                results["var_" + str(i)].append(sum(var_values_float) / len(var_values_float))
+
+    data = [results["mean_0"], results["mean_1"], results["mean_2"], results["mean_3"], results["mean_4"],
+            results["mean_5"], results["mean_6"], results["mean_7"]]
+    fig7, ax7 = plt.subplots()
+    ax7.set_title('Compare the mean between different values of alphas')
+    ax7.boxplot(data, labels=["1", "2", "3", "4", "5", "6", "7", "8"])
+    # ax7.boxplot(data, labels=["0", "1", "10", "20", "40", "60", "80", "100"])
+    for d in data:
+        print("mean: ", mean(d))
+    # plt.xlabel("alpha value")
+    plt.xlabel("topic number")
+    plt.ylabel("coherence score")
+    plt.savefig("fix-data.png")
+    # plt.savefig("alpha-data.png")
+    plt.show()
+    return results
+
+
 # reads all csv files from provided folder.
 # used for single topic files
 def analyse_multiple_fix_topic(path, file):
     folders = []
-    for root in os.walk(path):
-        if "fix" in root[0]: folders.append(root[0])
-    # del folders[0]  # remove first element, since it is the root folder
+    for root in os.listdir(path):
+        if "fix" in root: folders.append(path + root)
+    if len(folders) == 0: return
     folders.sort()
     print(folders)
-    res=[["doc_name", "best", "top-2", "top-3", "top-4", "mean", "min", "max", "score-2", "score-3", "score-4", "stdev", "variance", "CI-95", "CI-99"]]
+    res = [
+        ["doc_name", "best", "top-2", "top-3", "top-4", "mean", "min", "max", "score-2", "score-3", "score-4", "stdev",
+         "variance", "CI-95", "CI-99"]]
     for f in folders:
         with open(f + "/" + file, "r") as of:
             reader = csv.reader(of)
@@ -201,7 +293,7 @@ def analyse_multiple_fix_topic(path, file):
             for row in reader:
                 row[0] = f
                 res.append(row)  # only one row per document
-    with open(path + "results.csv", "w") as f:
+    with open(path + "fix-results.csv", "w") as f:
         wr = csv.writer(f)
         wr.writerows(res)
 
@@ -266,10 +358,93 @@ def compare_dist(n_docs):
             wr.writerow(mdata)
 
 
-# todo create method for inter model comparison, i.e., between queries
+def evaluate_comp(path):
+    files = os.listdir(path)
+    files = sorted([el for el in files if el[0] != "."])
+    dict = {"mallet": 0, "classic": 0, "pair": 0}
+    for file in files:
+        data = pd.read_csv(path + file)
+        names = data["lda"]
+        means = data["mean"]
+        if means[0] > means[1]:
+            dict[names[0]] += 1
+        elif means[1] > means[0]:
+            dict[names[1]] += 1
+        else:
+            dict["pair"] += 1
+    print(dict)
+
+
+def create_big_table():
+    path = "test/dist/"
+
+    def main(name):
+        table = pd.DataFrame()
+        for q in os.listdir(path + name):  # q = 31,32,34
+            if q[0] != ".":
+                for sub in os.listdir(path + name + "/" + q):  # sub = 1,2,3
+                    if sub[0] != ".":
+                        for files in os.listdir(path + name + "/" + q + "/" + sub):
+                            if files[-3:] == "csv":
+                                file_path = path + name + "/" + q + "/" + sub + "/" + files
+                                with open(file_path, "r") as r:
+                                    rd = csv.reader(r)
+                                    first = next(rd)
+                                    last_line = None
+                                    for line in rd:
+                                        last_line = line
+                                    table = table.append(
+                                        pd.Series([name, q, sub, first[0], first[1], first[2]] + last_line),
+                                        ignore_index=True)
+        return table
+
+    classic_table = main("classic")
+    mallet_table = main("mallet")
+    final_table = pd.concat([classic_table, mallet_table], ignore_index=True)
+    final_table.columns = ["LDA", "caption", "term", "rel_docs", "n_docs", "min_rel"] + ["{}-topics".format(i) for i in
+                                                                                         range(8)] + ["mean"]
+    final_table.to_csv("test/dist/final.csv")
+    print("sas")
+
+
+def find_num_models_fix(path):
+    with open(path + "results.csv", "r") as f:
+        reader = csv.reader(f)
+        next(reader)
+        data = next(reader)
+        ci_99 = eval(data[-1])  # convert class string to tuple
+        mean_data = float(data[5])
+
+    with open(path + "data-1", "rb") as f:
+        data = pickle.load(f)
+        scores = data["values"]
+        # greater than top
+        above_ci_99 = [el for el in scores if el >= ci_99[1]]
+        above_mean = [el for el in scores if el >= mean_data]
+        print(path)
+        print(
+            "probability of getting upper bound for ci_99 of {:.4f} is {}/{} = {:.4f} and for the mean of {:.4f} is {}/{} = {:.4f}"
+            .format(ci_99[1], len(above_ci_99), len(scores), len(above_ci_99) / len(scores), mean_data, len(above_mean),
+                    len(scores), len(above_mean) / len(scores)))
+
+
+def find_num_models_fix_folder(path):
+    for q in os.listdir(path):
+        # exclude fix-1 because it is a horizontal line
+        if q[0] != "." and "fix" in q and "1" not in q:
+            find_num_models_fix(path + q + "/")
+
+
 if __name__ == '__main__':
-    compare_dist(30)
-    sys.exit(0)
+    # find_num_models_fix_folder("test/mallet-test/50_1/")
+    path = "test/mallet-test/"
+    # for q in os.listdir(path):
+    #     if q[0] != "." and q[0] != "d" :
+    #         analyse_multiple_fix_topic(path+q+"/", "results.csv")
+    # sys.exit(0)
+    # compare_between_queries_alpha("test/mallet-test/")
+    # evaluate_comp("test/dist/comparison/")
+    # create_big_table()
     # query = "59_5"
     query = "31_6"
     # analyse_multiple_fix_topic("test/mallet-test/{}/".format(query), "results.csv")
@@ -286,10 +461,11 @@ if __name__ == '__main__':
         compare_results("test/mallet-test/{}/docs_40/".format(query), 21)
         analyse_top_best_results("test/mallet-test/{}/docs_40/results.csv".format(query))
 
-    analyse_top_best_results_folder("test/mallet-test/{}/".format(query), "results.csv")
-    compare_intra_model("test/mallet-test/{}".format(query), "results.csv")
+    # analyse_top_best_results_folder("test/mallet-test/{}/".format(query), "results.csv")
+    compare_between_queries_doc_number(path)
+    # compare_intra_model("test/mallet-test/{}".format(query), "results.csv")
+
     # analyse_multiple_fix_topic("test/mallet-test/{}/".format(query), "results.csv")
 
     # for query in queries:
     #     compare_intra_model("test/mallet-test/{}/".format(query), "results.csv")
-

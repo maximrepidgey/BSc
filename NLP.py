@@ -111,7 +111,7 @@ def nlp(query_id, n_documents, albert=False, passages=False):
 
     if passages:
         print(passages_id)
-        # return
+        return
 
     # retrieve all relative passages to query id
     with open(passages_path, 'r', newline='\n') as passages:
@@ -182,4 +182,4 @@ def nlp(query_id, n_documents, albert=False, passages=False):
 
 
 if __name__ == '__main__':
-    nlp("31_1", 10, passages=True, albert=True)
+    nlp("68_6", 40, passages=True, albert=True)

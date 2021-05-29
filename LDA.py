@@ -1,4 +1,6 @@
 import pickle
+import sys
+
 from gensim.models import CoherenceModel
 from NLP import nlp
 from statistics import mean
@@ -122,9 +124,13 @@ def get_formatted_topics(model):
 
 
 #  n-1 should be equal to number of labels.csv files
-def run_neural_embedding(path, n=2):
+def run_neural_embedding(path, n=2, arr=None):
     os.chdir("NETL-Automatic-Topic-Labelling/model_run")
-    for x in range(1, n):
+    if arr is not None:
+        iter_var = arr
+    else:
+        iter_var = range(1, n)
+    for x in iter_var:
         cand_out = "./../../" + path + "output_candidates-" + str(x)
         unsup_out = "./../../" + path + "output_unsupervised-" + str(x)
         sup_out = "./../../" + path + "output_supervised-" + str(x)
@@ -283,6 +289,8 @@ class LDA:
 
     def df_topic_sent_keywords_print(self, min_relevance=3):
         df_topic_sents_keywords = self.format_topics_sentences()
+        rel_docs = df_topic_sents_keywords["Relevance"]
+        n_rel_docs = len([el for el in rel_docs if int(el) >= min_relevance])
         # with open(self.path + "dist.csv", "r") as f:
         #     df_topic_sents_keywords = pd.read_csv(f)
         # could happen that no document belongs to certain topic, this provoke one parameter missing. This causes no
@@ -292,11 +300,12 @@ class LDA:
         n_docs = df_topic_sents_keywords.shape[0]
         # tmp.apply(print)
         print("Consider the relevance score >= " + str(min_relevance))
-        # first is number of docs, second is min_relevance, after the topics relevance score
-        values = [n_docs, min_relevance]
+        # first is number of total rel documents, second is number of docs,  third is min_relevance, after the topics relevance score
+        values = [n_rel_docs, n_docs, min_relevance]
         for topic, group in grouped_dominant_topic:
             tmp = [el for el in group['Relevance'] if int(el) >= min_relevance]
-            print("Relevance of topic {} is {}/{}".format(topic, len(tmp), n_docs))
+            print("Relevance of topic {} is {}/{} with total of {} retrieved documents".format(topic, len(tmp),
+                                                                                               n_rel_docs, n_docs))
             values.append(len(tmp))
 
         return values
@@ -311,6 +320,19 @@ if __name__ == "__main__":
     etas = [0.0001, 0.001, 0.01, 0.1, 1, 10]
     optimizations = [1, 10, 20, 50, 100, 200]
     alphas = [0, 1, 10, 20, 40, 60, 80, 100]
+    test_arr = [19, 24, 9, 26]
+    path = "test/mallet-test/31_6/fix_4-docs_30/"
+    with open(path + "data-1", "rb") as f:
+        data = pickle.load(f)
+
+    for v in test_arr:
+        output_csv = normalize_output_topics_csv(data["model"][v])
+        with open(path + "labels-{}.csv".format(v), "w") as fb:
+            writer = csv.writer(fb)
+            writer.writerows(output_csv)
+
+    run_neural_embedding(path, arr=test_arr)
+    sys.exit(0)
 
     for i in range(1, 9):
         run_neural_embedding("test/mallet-test/61_1/fix_{}-docs_30/".format(i), 2)

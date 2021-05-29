@@ -1,4 +1,7 @@
-from LDA import LDA, get_file, normalize_output_topics_csv
+import pickle
+from pprint import pprint
+
+from LDA import LDA, get_file, run_neural_embedding, normalize_output_topics_csv
 from gensim.models.wrappers.ldamallet import LdaMallet
 import csv
 import time
@@ -36,20 +39,57 @@ class MalletLDA(LDA):
 
     def create_model(self, topics=20, workers=1):
         return LdaMallet(mallet_path, corpus=self.corpus, num_topics=topics, id2word=self.words,
-                         workers=workers, alpha=self.__alpha, topic_threshold=self.__threshold, optimize_interval=self.__optimize_interval)
+                         workers=workers, alpha=self.__alpha, topic_threshold=self.__threshold,
+                         optimize_interval=self.__optimize_interval)
 
     def load_lda_model(self):
         return get_file("lda-data/mallet-model")
 
+    def final_model(self, topic):
+        best_model = None
+        best_score = -1
+        for i in range(4):
+            model = self.create_model(topic)
+            score = self.compute_coherence(model).get_coherence()
+            if score > best_score:
+                best_score = score
+                best_model = model
+        return (best_score, best_model)
 
-query = "61_1"
-docs_num = 10
+
+query = "59_3"
+docs_num = 30
 path = "test/rapid/" + query + "/docs_{}/".format(docs_num)
 
 if __name__ == '__main__':
+    num_topics = 4
+    path = "test/final/" + query + "/"
+    if not os.path.exists(path): os.makedirs(path)
 
-    nlp("59_3", 30, albert=True)
-    mallet = MalletLDA("test/mallet-test/")
+    topics = [top for top in range(1, num_topics + 1)]
+    nlp(query, docs_num, albert=True)
+    start = time.time()
+    mallet = MalletLDA(path)
+    with Pool(num_topics) as p:
+        res = (p.map(mallet.final_model, topics))
+
+    print(res)
+    best = max(res, key=lambda it: it[0])
+    output_csv = normalize_output_topics_csv(best[1])
+    for x in res:
+        output_csv = normalize_output_topics_csv(x[1])
+        pprint(output_csv)
+    # sys.exit(0)
+    with open(path + "labels-1.csv", "w") as fb:
+        writer = csv.writer(fb)
+        writer.writerows(output_csv)
+    mallet_time = time.time() - start
+    print("time for mallet: " + str(mallet_time))
+
+    run_neural_embedding(mallet.path)
+    print("time NETL: " + str((time.time() - start - mallet_time)))
+    print("total time: " + str((time.time() - start)))
+    sys.exit(0)
     model = mallet.create_model_and_save(3)
     tmp = model[mallet.corpus]
     for i, row in enumerate(tmp):
@@ -78,45 +118,3 @@ if __name__ == '__main__':
     mallet.run_multiple_increasing_topics(6, limit=14)
     # with Pool(len(alphas)) as p:
     #     p.map(simulation.increasing_topics_set_alpha, alphas)
-
-
-    sys.exit(0)
-    # run mallet model with fix topic for n times, in order to get fluctuation
-    # can be used for clusters
-
-    num_topic = orig_num_topics_start
-    dir_name = "test/mallet-multiple/"+query+"/docs_20/"
-    # analyse the result
-    with open(dir_name+"statistics.csv", "w") as f:
-        writer = csv.writer(f)
-        writer.writerow(["num_topics", "mean", "max", "min", "stdev", "variance", "CI_95", "Ci_99"])
-        for el in scores:
-            x = range(0, n)
-            print(str(num_topic) + " topics")
-            # plot values
-            plt.plot(x, el, linestyle='--', marker="o")
-            plt.xlabel("iteration")
-            plt.ylabel("Coherence score")
-            plt.title("LDA models with {} topics".format(num_topic))
-            plt.savefig(dir_name+"img" + str(num_topic) + ".png")
-            # plt.show()
-            plt.close("all")
-            # compute statistics
-            mean_value = sum(el)/len(el)
-            CI_95 = st.t.interval(alpha=0.95, df=len(el) - 1, loc=mean_value, scale=st.sem(el))
-            CI_99 = st.t.interval(alpha=0.99, df=len(el) - 1, loc=mean_value, scale=st.sem(el))
-            writer.writerow([num_topic, mean_value, max(el), min(el), stdev(el), variance(el), CI_95, CI_99])
-            num_topic += 1
-
-    num_topic = orig_num_topics_start
-    for el_model in models:
-        num_model = 1
-        for el in el_model:
-            out = normalize_output_topics_csv(el)
-            dir_name_labels = dir_name+"/labels/topics_"+str(num_topic)
-            if not os.path.exists(dir_name_labels): os.makedirs(dir_name_labels)
-            with open(dir_name_labels+"/label-"+str(num_model), "w") as label:
-                wr = csv.writer(label)
-                wr.writerows(out)
-            num_model += 1
-        num_topic += 1
