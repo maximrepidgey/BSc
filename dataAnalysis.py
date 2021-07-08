@@ -402,9 +402,8 @@ def create_big_table():
     mallet_table = main("mallet")
     final_table = pd.concat([classic_table, mallet_table], ignore_index=True)
     final_table.columns = ["LDA", "caption", "term", "rel_docs", "n_docs", "min_rel"] + ["{}-topics".format(i) for i in
-                                                                                         range(8)] + ["mean"]
+                                                                                         range(1, 9)] + ["mean"]
     final_table.to_csv("test/dist/final.csv")
-    print("sas")
 
 
 def find_num_models_fix(path):
@@ -415,6 +414,8 @@ def find_num_models_fix(path):
         ci_99 = eval(data[-1])  # convert class string to tuple
         mean_data = float(data[5])
 
+    means = []
+    ci_99s = []
     with open(path + "data-1", "rb") as f:
         data = pickle.load(f)
         scores = data["values"]
@@ -422,26 +423,45 @@ def find_num_models_fix(path):
         above_ci_99 = [el for el in scores if el >= ci_99[1]]
         above_mean = [el for el in scores if el >= mean_data]
         print(path)
+        means.append(len(above_mean) / len(scores))
+        ci_99s.append(len(above_ci_99) / len(scores))
         print(
             "probability of getting upper bound for ci_99 of {:.4f} is {}/{} = {:.4f} and for the mean of {:.4f} is {}/{} = {:.4f}"
             .format(ci_99[1], len(above_ci_99), len(scores), len(above_ci_99) / len(scores), mean_data, len(above_mean),
                     len(scores), len(above_mean) / len(scores)))
 
+    return mean(means), mean(ci_99s)
+
 
 def find_num_models_fix_folder(path):
+    means = []
+    ci_99s = []
     for q in os.listdir(path):
         # exclude fix-1 because it is a horizontal line
-        if q[0] != "." and "fix" in q and "1" not in q:
-            find_num_models_fix(path + q + "/")
+        if q[0] != "." and "fix" in q and "1" not in q and ".csv" not in q:
+            m, c = find_num_models_fix(path + q + "/")
+            means.append(m)
+            ci_99s.append(c)
+
+    if len(means) == 0:
+        return 0, 0
+    return mean(means), mean(ci_99s)
 
 
 if __name__ == '__main__':
     # find_num_models_fix_folder("test/mallet-test/50_1/")
     path = "test/mallet-test/"
-    # for q in os.listdir(path):
-    #     if q[0] != "." and q[0] != "d" :
-    #         analyse_multiple_fix_topic(path+q+"/", "results.csv")
-    # sys.exit(0)
+    means = []
+    ci_99s = []
+    for q in os.listdir(path):
+        if q[0] != "." and q[0] != "d":
+            # analyse_multiple_fix_topic(path+q+"/", "results.csv")
+            m,c = find_num_models_fix_folder(path+q+"/")
+            if m == 0: continue
+            means.append(m)
+            ci_99s.append(c)
+    print(mean(means), mean(ci_99s))
+    sys.exit(0)
     # compare_between_queries_alpha("test/mallet-test/")
     # evaluate_comp("test/dist/comparison/")
     # create_big_table()

@@ -57,23 +57,24 @@ class MalletLDA(LDA):
         return (best_score, best_model)
 
 
-query = "59_3"
+query = "50_1"
 docs_num = 30
 path = "test/rapid/" + query + "/docs_{}/".format(docs_num)
 
 if __name__ == '__main__':
-    num_topics = 4
+    num_topics = 2
     path = "test/final/" + query + "/"
     if not os.path.exists(path): os.makedirs(path)
 
-    topics = [top for top in range(1, num_topics + 1)]
-    nlp(query, docs_num, albert=True)
+    topics = [1, 4]
+    # topics = [top for top in range(1, num_topics + 1)]
+    nlp(query, docs_num)
     start = time.time()
     mallet = MalletLDA(path)
     with Pool(num_topics) as p:
         res = (p.map(mallet.final_model, topics))
 
-    print(res)
+    # print(res)
     best = max(res, key=lambda it: it[0])
     output_csv = normalize_output_topics_csv(best[1])
     for x in res:
