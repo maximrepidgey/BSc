@@ -124,17 +124,17 @@ def get_formatted_topics(model):
 
 
 #  n-1 should be equal to number of labels.csv files
-def run_neural_embedding(path, n=2, arr=None):
+def run_neural_embedding(path, n=2, filename="labels-", arr=None):
     os.chdir("NETL-Automatic-Topic-Labelling/model_run")
     if arr is not None:
         iter_var = arr
     else:
         iter_var = range(1, n)
     for x in iter_var:
-        cand_out = "./../../" + path + "output_candidates-" + str(x)
-        unsup_out = "./../../" + path + "output_unsupervised-" + str(x)
-        sup_out = "./../../" + path + "output_supervised-" + str(x)
-        label_file_name = "./../../" + path + "labels-" + str(x) + ".csv"
+        cand_out = "./../../" + path + "output_candidates_" + filename + str(x)
+        unsup_out = "./../../" + path + "output_unsupervised_" + filename + str(x)
+        sup_out = "./../../" + path + "output_supervised_" + filename + str(x)
+        label_file_name = "./../../" + path + filename + str(x) + ".csv"
         os.system(
             "python get_labels.py -cg -us -s -d " + label_file_name + " -ocg " + cand_out + " -ouns " + unsup_out + " -osup " + sup_out)
     os.chdir("./../..")

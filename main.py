@@ -1,5 +1,5 @@
 from NLP import nlp
-from LDA import get_file, normalize_output_topics_csv
+from LDA import get_file, normalize_output_topics_csv, run_neural_embedding
 from malletLDA import MalletLDA
 from dataAnalysis import compare_results
 from classicLDA import ClassicLDA
@@ -238,20 +238,31 @@ def rename(path):
             os.rename(path + d, path + d[3:])
 
 
-query = "61_8"
-
+query = "32_1"
 # not 75_7 query
 if __name__ == "__main__":
-    # add_rel_docs(query)
-    # path = "test/dist/classic/31/9/results-docs_30.csv"
-    # df = pd.read_csv(path)
-    # print(df.tail(1))
-    # nlp(query, docs_num, True)
-    # m = MalletLDA("test/rapid/mallet/mass/")
-    # m.run_multiple_fix_topic(3, 41)
-    compare_results("test/rapid/mallet/mass/", 2)  # generate results.csv
-    sys.exit(0)
-    # parameters = [query]
-    parameters = ["31_1", "31_6", "59_2", "59_5", "67_5", "67_10"]
-    with Pool(len(parameters)) as p:
-        p.map(increasing_topics, parameters)
+    # set own_data variable to list of strings which represent list of documents
+    own_data = None
+    nlp(own_data=own_data)
+    # set path variable to the local path you desire to store LDA results. slash (/) at the end is needed.
+    path = "test/"
+    mallet = MalletLDA(path)
+
+    # run only one mallet model with 1 topic
+    one_topic_model = mallet.create_model(1)
+    one_topic_model_score = mallet.compute_coherence(one_topic_model).get_coherence()
+    output_csv = normalize_output_topics_csv(one_topic_model)
+    with open(path + "one-model-labels-1.csv", "w") as fb:
+        writer = csv.writer(fb)
+        writer.writerows(output_csv)
+
+    # run NETL for 1 topic model
+    run_neural_embedding(path, filename="one-model-labels-")
+
+    # run 4 LDA models with 4 topics
+    mallet.run_multiple_fix_topic(4, 5)
+    run_neural_embedding(path)
+
+    mallet_values = get_file(path + "data-1")
+    best_score = max(mallet_values['values'])
+    print("one topic model score is {} and 4-topic model is {}".format(one_topic_model_score, best_score))

@@ -21,7 +21,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-def nlp(query_id, n_documents, albert=False, passages=False):
+def nlp(query_id="", n_documents=20, albert=False, passages=False, own_data=None):
     # NLTK Stop words
     # 5. Prepare Stopwords
     stop_words = stopwords.words('english')
@@ -53,73 +53,76 @@ def nlp(query_id, n_documents, albert=False, passages=False):
     # df = pd.read_json('https://raw.githubusercontent.com/selva86/datasets/master/newsgroups.json')
     # df.head()
 
-    if albert:
-        ranked_queries_path = "test-data/cast/albert/albert_manual_qld.tsv"
-        passages_path = "test-data/cast/albert/qld_manual_passages.tsv"
-    else:
-        ranked_queries_path = "test-data/cast/dev_manual_bm25.tsv"
-        passages_path = "test-data/cast/dev_manual_bm25_passages.tsv"
+    if own_data is None:
+        if albert:
+            ranked_queries_path = "test-data/cast/albert/albert_manual_qld.tsv"
+            passages_path = "test-data/cast/albert/qld_manual_passages.tsv"
+        else:
+            ranked_queries_path = "test-data/cast/dev_manual_bm25.tsv"
+            passages_path = "test-data/cast/dev_manual_bm25_passages.tsv"
 
-    # import data
-    with open(ranked_queries_path, 'r', newline='\n') as query_passages:
-        rd = csv.reader(query_passages, delimiter=' ', quotechar='"')
-        passages_id = []
-        rank = []
-        # collect all documents corresponding to that query
-        for row in rd:
-            if row[0] == query_id:
-                passages_id.append(row[2])
-                rank.append(int(float(row[3])))
+        # import data
+        with open(ranked_queries_path, 'r', newline='\n') as query_passages:
+            rd = csv.reader(query_passages, delimiter=' ', quotechar='"')
+            passages_id = []
+            rank = []
+            # collect all documents corresponding to that query
+            for row in rd:
+                if row[0] == query_id:
+                    passages_id.append(row[2])
+                    rank.append(int(float(row[3])))
 
-    sorted_zipped = sorted(zip(rank, passages_id))
-    sorted_passages = [element for _, element in sorted_zipped]
-    passages_id = sorted_passages[:n_documents]  # top n documents
+        sorted_zipped = sorted(zip(rank, passages_id))
+        sorted_passages = [element for _, element in sorted_zipped]
+        passages_id = sorted_passages[:n_documents]  # top n documents
 
-    passages_list = []
-    queries_seen = []
-    with open("test-data/ivan-data.tsv", "r", newline='\n') as f:
-        reader = csv.reader(f, delimiter=' ', quotechar='"')
-
-        for row in reader:
-            if row[0] == query_id and row[2] in passages_id:
-                queries_seen.append(row[2])
-                passages_list.append((row[2], row[3]))
-                # passages_list.append({'id': row[2], 'relevance': row[3]})
-
-    queries_unseen = list(set(passages_id) - set(queries_seen))
-    for q in queries_unseen:
-        passages_list.append((q, 0))
-        # passages_list.append({'id': q, 'relevance': 0})
-
-    with open(ranked_queries_path, 'r', newline='\n') as query_passages:
-        rd = csv.reader(query_passages, delimiter=' ', quotechar='"')
-        # sort basing on machine score
-        rank = []
-        items = []
-        for row in rd:
-            if row[0] == query_id:
-                for item in passages_list:
-                    if row[2] == item[0]:
-                        rank.append(int(float(row[3])))
-                        items.append(item)
-
-    sorted_zipped = sorted(zip(rank, items))
-    passages_list = [element for _, element in sorted_zipped]
-
-    with open("lda-data/passages", "wb") as f:
-        pickle.dump(passages_list, f)
-
-    if passages:
-        print(passages_id)
-        return
-
-    # retrieve all relative passages to query id
-    with open(passages_path, 'r', newline='\n') as passages:
-        rd = csv.reader(passages, quotechar='"', delimiter='\t')
         passages_list = []
-        for row in rd:
-            if row[0] in passages_id:
-                passages_list.append(row[1])
+        queries_seen = []
+        with open("test-data/ivan-data.tsv", "r", newline='\n') as f:
+            reader = csv.reader(f, delimiter=' ', quotechar='"')
+
+            for row in reader:
+                if row[0] == query_id and row[2] in passages_id:
+                    queries_seen.append(row[2])
+                    passages_list.append((row[2], row[3]))
+                    # passages_list.append({'id': row[2], 'relevance': row[3]})
+
+        queries_unseen = list(set(passages_id) - set(queries_seen))
+        for q in queries_unseen:
+            passages_list.append((q, 0))
+            # passages_list.append({'id': q, 'relevance': 0})
+
+        with open(ranked_queries_path, 'r', newline='\n') as query_passages:
+            rd = csv.reader(query_passages, delimiter=' ', quotechar='"')
+            # sort basing on machine score
+            rank = []
+            items = []
+            for row in rd:
+                if row[0] == query_id:
+                    for item in passages_list:
+                        if row[2] == item[0]:
+                            rank.append(int(float(row[3])))
+                            items.append(item)
+
+        sorted_zipped = sorted(zip(rank, items))
+        passages_list = [element for _, element in sorted_zipped]
+
+        with open("lda-data/passages", "wb") as f:
+            pickle.dump(passages_list, f)
+
+        if passages:
+            print(passages_id)
+            return
+
+        # retrieve all relative passages to query id
+        with open(passages_path, 'r', newline='\n') as passages:
+            rd = csv.reader(passages, quotechar='"', delimiter='\t')
+            passages_list = []
+            for row in rd:
+                if row[0] in passages_id:
+                    passages_list.append(row[1])
+    else:
+        passages_list = own_data
 
     data = passages_list  # set data, must be a list
     # data = df.content.values.tolist()
